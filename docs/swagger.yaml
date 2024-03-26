@@ -1,0 +1,23 @@
+info:
+  contact: {}
+paths:
+  /login:
+    get:
+      description: 这是一个登陆处理的方法
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+      tags:
+      - 登陆功能
+    post:
+      description: 处理注册功能
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+      tags:
+      - 注册功能
+swagger: "2.0"
