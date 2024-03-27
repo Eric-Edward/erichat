@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"time"
 )
 
 type userLogin struct {
@@ -13,11 +14,6 @@ type userLogin struct {
 	Password string `json:"password"`
 }
 
-// LoginHandler
-// @Tags 登陆功能
-// @Description 这是一个登陆处理的方法
-// @Success 200 {string} json:{code:message}
-// @router /login [post]
 func LoginHandler(c *gin.Context) {
 	var user userLogin
 	err := c.ShouldBind(&user)
@@ -40,7 +36,6 @@ func LoginHandler(c *gin.Context) {
 	}
 
 	findResult := engine.Where("user_name=? AND pass_word=?", user.Username, findUser.PassWord).Find(&findUser)
-
 	if findResult.RowsAffected == 0 {
 		c.JSON(http.StatusOK, gin.H{
 			"message": "登陆失败，数据库中没有该用户",
@@ -49,11 +44,13 @@ func LoginHandler(c *gin.Context) {
 		})
 		return
 	}
+	jwt, _ := utils.GenerateJWT(findUser.ID, time.Now().Add(time.Minute*20))
 	c.JSON(http.StatusOK, gin.H{
 		"message":  "登陆成功",
 		"status":   "ok",
-		"username": user.Username,
+		"username": findUser.UserName,
 		"uuid":     findUser.ID,
+		"token":    jwt,
 	})
 	return
 }

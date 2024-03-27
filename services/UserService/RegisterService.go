@@ -7,13 +7,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"net/http"
+	"time"
 )
 
-// Register
-// @Tags 注册功能
-// @Description 处理注册功能
-// @Success 200 {string} json:{code:message}
-// @router /register [post]
 func Register(c *gin.Context) {
 	engine := utils.GetMySQLDB()
 	user := User.UserBasic{}
@@ -32,20 +28,17 @@ func Register(c *gin.Context) {
 		return
 	}
 	engine.Create(&user)
+	jwt, _ := utils.GenerateJWT(user.ID, time.Now().Add(time.Minute*20))
 	c.JSON(http.StatusOK, gin.H{
 		"message":  "注册成功",
 		"uuid":     user.ID,
 		"username": user.UserName,
 		"state":    "ok",
+		"token":    jwt,
 	})
 	return
 }
 
-// UsernameIsRegistered
-// @Tags 注册功能
-// @Description 查看当前用户名是否已经被注册
-// @Success 200 {string} json:{code:message}
-// @router /register [get]
 func UsernameIsRegistered(c *gin.Context) {
 	username := c.Query("username")
 	engine := utils.GetMySQLDB()

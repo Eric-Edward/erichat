@@ -1,21 +1,15 @@
 package router
 
 import (
-	"EcChat/docs"
 	"EcChat/middlewares"
 	"EcChat/services/UserService"
 	"github.com/gin-gonic/gin"
-	"github.com/swaggo/files"
-	"github.com/swaggo/gin-swagger"
 )
 
 func Route() *gin.Engine {
 	ginServer := gin.Default()
 
 	ginServer.Use(middlewares.Cors())
-
-	docs.SwaggerInfo.BasePath = ""
-	ginServer.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	routeLogin := ginServer.Group("/login")
 	{
@@ -28,7 +22,7 @@ func Route() *gin.Engine {
 		routeRegister.POST("", UserService.Register)
 	}
 
-	routeComplete := ginServer.Group("/complete")
+	routeComplete := ginServer.Group("/complete", middlewares.Authorization())
 	{
 		routeComplete.GET("", UserService.GetUserInfo)
 		routeComplete.POST("", UserService.CompleteUserInfo)

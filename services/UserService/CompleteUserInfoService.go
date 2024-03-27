@@ -83,6 +83,7 @@ func GetUserInfo(c *gin.Context) {
 		})
 		return
 	}
+
 	c.JSON(http.StatusOK, findUser)
 }
 

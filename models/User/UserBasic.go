@@ -1,6 +1,8 @@
 package User
 
 import (
+	"EcChat/utils"
+	"errors"
 	"gorm.io/gorm"
 	"time"
 )
@@ -31,3 +33,14 @@ type UserBasic struct {
 	//receiver.UpdateAt = time.Now()
 }
 */
+
+func GetUserByID(id string) (UserBasic, error) {
+	var user UserBasic
+	db := utils.GetMySQLDB()
+	tx := db.Where("id=?", id).First(&user)
+	exist := errors.Is(tx.Error, gorm.ErrRecordNotFound)
+	if !exist {
+		return user, nil
+	}
+	return user, tx.Error
+}
