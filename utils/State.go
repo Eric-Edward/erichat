@@ -5,8 +5,10 @@ const (
 	FailedBindInfo
 	FailedBearer
 	FailedParseJWT
-	FailedNotFoundUser
+	FailedFindUser
 	FailedExpiredJWT
 	FailedGenerateJWT
 	FailedRefreshJWT
+	FailedCreateChatRoom
+	FailedFindChatRoom
 )
