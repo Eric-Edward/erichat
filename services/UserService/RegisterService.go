@@ -1,7 +1,7 @@
 package UserService
 
 import (
-	"EcChat/models/User"
+	"EcChat/models"
 	"EcChat/utils"
 	"fmt"
 	"github.com/gin-gonic/gin"
@@ -12,8 +12,8 @@ import (
 
 func Register(c *gin.Context) {
 	engine := utils.GetMySQLDB()
-	user := User.UserBasic{}
-	_ = engine.AutoMigrate(&User.UserBasic{})
+	user := models.UserBasic{}
+	_ = engine.AutoMigrate(&models.UserBasic{})
 	err := c.ShouldBind(&user)
 	if err != nil {
 		fmt.Println("数据转换失败！")
@@ -42,7 +42,7 @@ func Register(c *gin.Context) {
 func UsernameIsRegistered(c *gin.Context) {
 	username := c.Query("username")
 	engine := utils.GetMySQLDB()
-	var user User.UserBasic
+	var user models.UserBasic
 	find := engine.Where("user_name=?", username).Find(&user)
 	if find.RowsAffected != 0 {
 		c.JSON(http.StatusOK, gin.H{

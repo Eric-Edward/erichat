@@ -1,7 +1,7 @@
 package middlewares
 
 import (
-	"EcChat/models/User"
+	"EcChat/models"
 	"EcChat/utils"
 	"fmt"
 	"github.com/gin-gonic/gin"
@@ -33,7 +33,7 @@ func Authorization() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
-		_, err = User.GetUserByID(claims.Uid)
+		_, err = models.GetUserByID(claims.Uid)
 		isExpiredJWT := utils.IsExpiredJWT(claims)
 		if isExpiredJWT || err != nil {
 			fmt.Println("User doesn't exist or auth is expired")

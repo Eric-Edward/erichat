@@ -1,7 +1,7 @@
 package UserService
 
 import (
-	"EcChat/models/User"
+	"EcChat/models"
 	"EcChat/utils"
 	"fmt"
 	"github.com/gin-gonic/gin"
@@ -50,7 +50,7 @@ func CompleteUserInfo(c *gin.Context) {
 		tx.Rollback()
 		return
 	}
-	updates := tx.Model(User.UserBasic{}).Where("id=?", user.ID).Updates(map[string]interface{}{
+	updates := tx.Model(models.UserBasic{}).Where("id=?", user.ID).Updates(map[string]interface{}{
 		"phone": user.Phone,
 		"email": user.Email,
 	})
@@ -74,7 +74,7 @@ func GetUserInfo(c *gin.Context) {
 	db := utils.GetMySQLDB()
 
 	var findUser UserInfo
-	db.Model(&User.UserBasic{}).Where("id=?", uid).Limit(1).Find(&findUser)
+	db.Model(&models.UserBasic{}).Where("id=?", uid).Limit(1).Find(&findUser)
 	if findUser.ID != uid {
 		c.JSON(http.StatusOK, gin.H{
 			"message": "数据库中不能存在当前用户",

@@ -2,6 +2,7 @@ package router
 
 import (
 	"EcChat/middlewares"
+	"EcChat/services/ChatService"
 	"EcChat/services/UserService"
 	"github.com/gin-gonic/gin"
 )
@@ -26,6 +27,11 @@ func Route() *gin.Engine {
 	{
 		routeComplete.GET("", UserService.GetUserInfo)
 		routeComplete.POST("", UserService.CompleteUserInfo)
+	}
+
+	routeMessage := ginServer.Group("/chat")
+	{
+		routeMessage.GET("/enter", ChatService.EnterChatRoom)
 	}
 
 	return ginServer

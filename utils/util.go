@@ -12,11 +12,6 @@ import (
 var mySqlDB *gorm.DB
 var redisDb *redis.Client
 
-func init() {
-	mySqlDB = getMySQLConnection()
-	redisDb = getRedisConnection()
-}
-
 func InitConfig() {
 	viper.SetConfigName("app")
 	viper.SetConfigFile("config/config.yml")
@@ -24,6 +19,9 @@ func InitConfig() {
 	if err != nil {
 		fmt.Println("配置文件读取失败!")
 	}
+
+	mySqlDB = getMySQLConnection()
+	redisDb = getRedisConnection()
 }
 
 func getMySQLConnection() *gorm.DB {
@@ -51,7 +49,7 @@ func GetMySQLDB() *gorm.DB {
 func getRedisConnection() *redis.Client {
 	return redis.NewClient(&redis.Options{
 		Addr:     "localhost:6379",
-		Password: "",
+		Password: "Tsinghua",
 		DB:       0,
 	})
 }

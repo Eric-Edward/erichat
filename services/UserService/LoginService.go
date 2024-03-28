@@ -1,7 +1,7 @@
 package UserService
 
 import (
-	"EcChat/models/User"
+	"EcChat/models"
 	"EcChat/utils"
 	"fmt"
 	"github.com/gin-gonic/gin"
@@ -21,9 +21,9 @@ func LoginHandler(c *gin.Context) {
 		fmt.Println("数据绑定失败：", err)
 	}
 
-	var findUser User.UserBasic
+	var findUser models.UserBasic
 	engine := utils.GetMySQLDB()
-	_ = engine.AutoMigrate(&User.UserBasic{})
+	_ = engine.AutoMigrate(&models.UserBasic{})
 	engine.Select("pass_word").Where("user_name=?", user.Username).Find(&findUser)
 
 	if !utils.ComparePassword(findUser.PassWord, user.Password) {
