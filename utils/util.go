@@ -2,11 +2,20 @@ package utils
 
 import (
 	"fmt"
+	"github.com/redis/go-redis/v9"
 	"github.com/spf13/viper"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"strings"
 )
+
+var mySqlDB *gorm.DB
+var redisDb *redis.Client
+
+func init() {
+	mySqlDB = getMySQLConnection()
+	redisDb = getRedisConnection()
+}
 
 func InitConfig() {
 	viper.SetConfigName("app")
@@ -17,7 +26,7 @@ func InitConfig() {
 	}
 }
 
-func getMySQLConnection() string {
+func getMySQLConnection() *gorm.DB {
 	var s strings.Builder
 	s.WriteString(viper.GetString("mysql.user"))
 	s.WriteString(":")
@@ -25,12 +34,7 @@ func getMySQLConnection() string {
 	s.WriteString("@/")
 	s.WriteString(viper.GetString("mysql.database"))
 	s.WriteString("?charset=utf8mb4&parseTime=True&loc=Local")
-	return s.String()
-
-}
-
-func GetMySQLDB() *gorm.DB {
-	engine, err := gorm.Open(mysql.Open(getMySQLConnection()), &gorm.Config{})
+	engine, err := gorm.Open(mysql.Open(s.String()), &gorm.Config{})
 	if err != nil {
 		panic("数据库连接失败！")
 	}
@@ -38,4 +42,20 @@ func GetMySQLDB() *gorm.DB {
 	db.SetMaxIdleConns(10)
 	db.SetMaxOpenConns(10)
 	return engine
+}
+
+func GetMySQLDB() *gorm.DB {
+	return mySqlDB
+}
+
+func getRedisConnection() *redis.Client {
+	return redis.NewClient(&redis.Options{
+		Addr:     "localhost:6379",
+		Password: "",
+		DB:       0,
+	})
+}
+
+func GetRedis() *redis.Client {
+	return redisDb
 }
