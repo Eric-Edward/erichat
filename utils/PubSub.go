@@ -5,6 +5,8 @@ import (
 	"fmt"
 )
 
+//TODO 这里的pubsub之后需要改成缓存就可以了
+
 func Publish(ctx context.Context, channel string, message string) {
 	rdb := GetRedis()
 	err := rdb.Publish(ctx, channel, message).Err()

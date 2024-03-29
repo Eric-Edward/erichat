@@ -8,6 +8,7 @@ import (
 func main() {
 	ginServer := router.Route()
 	utils.InitConfig()
+	utils.InitOther()
 
 	err := ginServer.Run(":8081")
 	if err != nil {

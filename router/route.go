@@ -32,8 +32,8 @@ func Route() *gin.Engine {
 	routeMessage := ginServer.Group("/chat", middlewares.Authorization())
 	{
 		routeMessage.POST("/enter", ChatService.EnterChatRoom)
-		routeMessage.POST("/create", ChatService.CreateChatRoom)
-		routeMessage.POST("/message", ChatService.SendMessage)
+		routeMessage.POST("/createPeer", ChatService.CreatePeerChatRoom)
+		routeMessage.POST("/message", ChatService.ReceiveMessage)
 	}
 
 	return ginServer

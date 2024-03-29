@@ -11,4 +11,6 @@ const (
 	FailedRefreshJWT
 	FailedCreateChatRoom
 	FailedFindChatRoom
+	FailedGenerateSocket
+	FailedReadMessage
 )
