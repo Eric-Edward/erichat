@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"EcChat/socket"
 	"fmt"
 	"github.com/redis/go-redis/v9"
 	"github.com/spf13/viper"
@@ -12,7 +11,6 @@ import (
 
 var mySqlDB *gorm.DB
 var redisDb *redis.Client
-var hub *socket.Hub
 
 func InitConfig() {
 	viper.SetConfigName("app")
@@ -24,15 +22,6 @@ func InitConfig() {
 
 	mySqlDB = getMySQLConnection()
 	redisDb = getRedisConnection()
-}
-
-func InitOther() {
-	hub = socket.NewHub()
-	hub.Run()
-}
-
-func GetHub() *socket.Hub {
-	return hub
 }
 
 func getMySQLConnection() *gorm.DB {

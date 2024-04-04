@@ -1,9 +1,9 @@
 package ChatService
 
 import (
-	"EcChat/models"
-	"EcChat/socket"
-	"EcChat/utils"
+	"EriChat/models"
+	"EriChat/socket"
+	"EriChat/utils"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"

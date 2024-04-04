@@ -1,14 +1,13 @@
 package main
 
 import (
-	"EcChat/router"
-	"EcChat/utils"
+	"EriChat/router"
+	"EriChat/utils"
 )
 
 func main() {
 	ginServer := router.Route()
 	utils.InitConfig()
-	utils.InitOther()
 
 	err := ginServer.Run(":8081")
 	if err != nil {

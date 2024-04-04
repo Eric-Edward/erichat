@@ -1,8 +1,8 @@
 package UserService
 
 import (
-	"EcChat/models"
-	"EcChat/utils"
+	"EriChat/models"
+	"EriChat/utils"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"

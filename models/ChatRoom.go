@@ -1,7 +1,7 @@
 package models
 
 import (
-	"EcChat/utils"
+	"EriChat/utils"
 	"errors"
 	"fmt"
 	"github.com/google/uuid"
@@ -10,18 +10,18 @@ import (
 )
 
 type ChatRoom struct {
-	Cid            string `gorm:"primaryKey"`
-	CreatedAt      time.Time
-	UpdatedAt      time.Time
-	DeletedAt      gorm.DeletedAt `gorm:"index"`
-	Channel        string         `gorm:"unique;not null"`
-	ChatRoomMember ChatRoomMember `gorm:"foreignKey:Cid"`
+	Cid       string `gorm:"primaryKey"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt gorm.DeletedAt `gorm:"index"`
+	Channel   string         `gorm:"unique;not null"`
 }
 
 type ChatRoomMember struct {
 	gorm.Model
-	Cid string `gorm:"not null;size:191"`
-	Uid string `gorm:"not null"`
+	Cid      string   `gorm:"not null;size:191"`
+	Uid      string   `gorm:"not null"`
+	ChatRoom ChatRoom `gorm:"foreignKey:Cid;references:Cid"`
 }
 
 func CreatePeerChatRoom(channel, u1, u2 string) (string, error) {
@@ -59,8 +59,17 @@ func CreatePeerChatRoom(channel, u1, u2 string) (string, error) {
 
 func GetAllChatRoomByUid(uid string) []ChatRoom {
 	var chatRooms []ChatRoom
+	var chatRoomNumber ChatRoomMember
 	db := utils.GetMySQLDB()
-	db.Model(&ChatRoomMember{}).Select("Cid").Where("id=?", uid).Find(&chatRooms)
+	tx := db.Model(&ChatRoomMember{}).Where("uid=?", uid).Find(&chatRoomNumber)
+	if tx.Error != nil {
+		return nil
+	}
+	tx = db.Model(&ChatRoom{}).Where("cid=?", chatRoomNumber.Cid).Find(&chatRooms)
+	if tx.Error != nil {
+		return nil
+	}
+
 	return chatRooms
 }
 

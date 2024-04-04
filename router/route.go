@@ -1,9 +1,10 @@
 package router
 
 import (
-	"EcChat/middlewares"
-	"EcChat/services/ChatService"
-	"EcChat/services/UserService"
+	"EriChat/middlewares"
+	"EriChat/services/ChatService"
+	"EriChat/services/FriendService"
+	"EriChat/services/UserService"
 	"github.com/gin-gonic/gin"
 )
 
@@ -34,6 +35,17 @@ func Route() *gin.Engine {
 		routeMessage.POST("/enter", ChatService.EnterChatRoom)
 		routeMessage.POST("/createPeer", ChatService.CreatePeerChatRoom)
 		routeMessage.POST("/message", ChatService.ReceiveMessage)
+		routeMessage.GET("/chatRoom", ChatService.GetAllChatRoom)
+	}
+
+	routeFriends := ginServer.Group("/friends", middlewares.Authorization())
+	{
+		routeFriends.GET("", FriendService.GetAllFriends)
+	}
+
+	routeClient := ginServer.Group("/clients", middlewares.Authorization())
+	{
+		routeClient.GET("", FriendService.GetAllClientByUserName)
 	}
 
 	return ginServer

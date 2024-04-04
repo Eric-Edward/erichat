@@ -1,7 +1,6 @@
 package models
 
 import (
-	"fmt"
 	"gorm.io/driver/mysql"
 	_ "gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -10,19 +9,14 @@ import (
 
 func TestUserBasic(t *testing.T) {
 
-	engine, err := gorm.Open(mysql.Open("root:Tsinghua@tcp(127.0.0.1:3306)/EcChat"), &gorm.Config{})
+	engine, err := gorm.Open(mysql.Open("root:Tsinghua@/EcChat?charset=utf8mb4&parseTime=True&loc=Local"), &gorm.Config{})
 	if err != nil {
 		return
 	}
-	engine.AutoMigrate(&UserBasic{})
-
-	user := UserBasic{UserName: "Eric", PassWord: "Tsinghua", Age: 23}
-	result := engine.Create(&user)
-	fmt.Println(user.ID, result.RowsAffected)
-	var user2 UserBasic
-	engine.First(&user2)
-
-	fmt.Println(user2)
+	err = engine.AutoMigrate(&RelationShip{})
+	if err != nil {
+		return
+	}
 
 	//engine.Migrator().DropTable(&UserBasic{})
 }

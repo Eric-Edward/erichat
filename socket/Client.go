@@ -1,7 +1,6 @@
 package socket
 
 import (
-	"EcChat/utils"
 	"fmt"
 	"github.com/gorilla/websocket"
 )
@@ -18,7 +17,7 @@ type Client struct {
 
 func NewWSClient(Uid, Cid, Channel string, Conn *websocket.Conn) *Client {
 	c := &Client{
-		Hub:     utils.GetHub(),
+		Hub:     GetHub(),
 		Uid:     Uid,
 		Cid:     Cid,
 		Channel: Channel,

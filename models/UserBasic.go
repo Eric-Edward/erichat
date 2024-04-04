@@ -1,7 +1,7 @@
 package models
 
 import (
-	"EcChat/utils"
+	"EriChat/utils"
 	"errors"
 	"gorm.io/gorm"
 	"time"
@@ -19,20 +19,6 @@ type UserBasic struct {
 	Phone    string
 	Email    string
 }
-
-// BeforeInsert
-// 这个函数在这里已经不需要了，因为xorm可以自己识别CreateAt和UpdateAt
-///
-/*func (receiver *UserBasic) BeforeInsert() {
-	//receiver.CreatedAt = time.Now()
-	//receiver.UpdateAt = time.Now()
-	fmt.Println("这里执行了", receiver.CreatedAt)
-}*/
-
-/*func (receiver *UserBasic) BeforeUpdate() {
-	//receiver.UpdateAt = time.Now()
-}
-*/
 
 func GetUserByID(id string) (UserBasic, error) {
 	var user UserBasic

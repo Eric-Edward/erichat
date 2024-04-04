@@ -16,13 +16,19 @@ type Hub struct {
 	unregister chan *Client
 }
 
-func NewHub() *Hub {
-	return &Hub{
+var h *Hub
+
+func init() {
+	h = &Hub{
 		broadcast:  make(chan []byte),
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
 		clients:    make(map[*Client]bool),
 	}
+}
+
+func GetHub() *Hub {
+	return h
 }
 
 func (h *Hub) Run() {

@@ -1,8 +1,8 @@
 package middlewares
 
 import (
-	"EcChat/models"
-	"EcChat/utils"
+	"EriChat/models"
+	"EriChat/utils"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"

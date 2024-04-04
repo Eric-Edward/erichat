@@ -1,8 +1,8 @@
 package ChatService
 
 import (
-	"EcChat/models"
-	"EcChat/utils"
+	"EriChat/models"
+	"EriChat/utils"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
@@ -61,4 +61,15 @@ func SendMessage(c *gin.Context) {
 		return
 	}
 	utils.Subscribe(c, channel)
+}
+
+func GetAllChatRoom(c *gin.Context) {
+	uid := c.Query("uid")
+	rooms := models.GetAllChatRoomByUid(uid)
+	c.JSON(http.StatusOK, gin.H{
+		"message": "获取当前用户的全部聊天时",
+		"code":    utils.Success,
+		"rooms":   rooms,
+	})
+	return
 }

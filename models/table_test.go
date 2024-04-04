@@ -10,9 +10,12 @@ import (
 
 func TestChatRoom(t *testing.T) {
 	db, err := gorm.Open(mysql.Open("root:Tsinghua@/EcChat?charset=utf8mb4&parseTime=True&loc=Local"), &gorm.Config{})
-	err = db.AutoMigrate(&ChatRoom{})
-	err = db.AutoMigrate(&ChatRoomMember{})
-	//err = db.AutoMigrate(&Message{})
+	//err = db.AutoMigrate(&UserBasic{})
+	//err = db.AutoMigrate(&Group{})
+
+	//err = db.AutoMigrate(&ChatRoom{})
+	//err = db.AutoMigrate(&ChatRoomMember{})
+	err = db.AutoMigrate(&RelationShip{})
 	if err != nil {
 		fmt.Println("表创建失败")
 		return
