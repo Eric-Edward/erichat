@@ -3,6 +3,7 @@ package models
 import (
 	"EriChat/utils"
 	"errors"
+	"fmt"
 	"gorm.io/gorm"
 	"time"
 )
@@ -20,6 +21,19 @@ type UserBasic struct {
 	Email    string
 }
 
+type UserInfo struct {
+	ID       string `gorm:"primarykey"`
+	UserName string `gorm:"unique;notnull"`
+	Age      int
+	Phone    string `validate:"isPhoneNumber"`
+	Email    string `validate:"email"`
+}
+
+type Client struct {
+	ID       string
+	UserName string
+}
+
 func GetUserByID(id string) (UserBasic, error) {
 	var user UserBasic
 	db := utils.GetMySQLDB()
@@ -29,4 +43,15 @@ func GetUserByID(id string) (UserBasic, error) {
 		return user, nil
 	}
 	return user, tx.Error
+}
+
+func GetAllClientsByUserName(username string) ([]Client, error) {
+	var clients []Client
+	db := utils.GetMySQLDB()
+	tx := db.Model(&UserBasic{}).Where("user_name like ?", "%"+username+"%").Find(&clients)
+	if tx.Error != nil {
+		fmt.Println("查找失败")
+		return nil, tx.Error
+	}
+	return clients, nil
 }

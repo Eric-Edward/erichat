@@ -14,4 +14,10 @@ const (
 	FailedGenerateSocket
 	FailedReadMessage
 	FailedLoadFriends
+	FailedFindClients
+	FailedAddFriends
+	FailedLoadGroups
+	FailedAddGroup
+	FailedLoadApplies
+	FailedDropApply
 )

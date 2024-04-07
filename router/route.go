@@ -41,6 +41,12 @@ func Route() *gin.Engine {
 	routeFriends := ginServer.Group("/friends", middlewares.Authorization())
 	{
 		routeFriends.GET("", FriendService.GetAllFriends)
+		routeFriends.POST("", FriendService.AddFriend)
+		routeFriends.GET("/group", FriendService.GetGroupByUid)
+		routeFriends.POST("/group", FriendService.AddGroup)
+		routeFriends.GET("/apply", FriendService.GetAllApplyByUid)
+		routeFriends.POST("/apply", FriendService.AddRelationShip)
+		routeFriends.DELETE("/apply", FriendService.DeleteRelationShipApply)
 	}
 
 	routeClient := ginServer.Group("/clients", middlewares.Authorization())

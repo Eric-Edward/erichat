@@ -10,16 +10,8 @@ import (
 	"regexp"
 )
 
-type UserInfo struct {
-	ID       string `gorm:"primarykey"`
-	UserName string `gorm:"unique;notnull"`
-	Age      int
-	Phone    string `validate:"isPhoneNumber"`
-	Email    string `validate:"email"`
-}
-
 func CompleteUserInfo(c *gin.Context) {
-	var user UserInfo
+	var user models.UserInfo
 	err := c.ShouldBind(&user)
 	if err != nil {
 		fmt.Println("数据绑定失败")
@@ -73,7 +65,7 @@ func GetUserInfo(c *gin.Context) {
 	uid := c.Query("uuid")
 	db := utils.GetMySQLDB()
 
-	var findUser UserInfo
+	var findUser models.UserInfo
 	db.Model(&models.UserBasic{}).Where("id=?", uid).Limit(1).Find(&findUser)
 	if findUser.ID != uid {
 		c.JSON(http.StatusOK, gin.H{
