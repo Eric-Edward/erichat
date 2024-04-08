@@ -1,7 +1,9 @@
 package utils
 
 import (
+	"encoding/json"
 	"fmt"
+	"github.com/gorilla/websocket"
 	"github.com/redis/go-redis/v9"
 	"github.com/spf13/viper"
 	"gorm.io/driver/mysql"
@@ -9,8 +11,34 @@ import (
 	"strings"
 )
 
+type Uid string
+type Cid string
+
+type WsMessage struct {
+	Target  Cid
+	Message string
+}
+
+type ChatRoom struct {
+	Clients []Uid
+	Cid     string
+}
+
+type Connection struct {
+	Conn   *websocket.Conn
+	FromWS chan WsMessage
+	ToWS   chan WsMessage
+}
+
+var AllConnections map[Uid]*Connection
+
+var AllChatRooms map[Cid]*ChatRoom
+
 var mySqlDB *gorm.DB
+
 var redisDb *redis.Client
+
+var channel *DeliverMessage
 
 func InitConfig() {
 	viper.SetConfigName("app")
@@ -22,6 +50,32 @@ func InitConfig() {
 
 	mySqlDB = getMySQLConnection()
 	redisDb = getRedisConnection()
+
+	channel = &DeliverMessage{
+		Channel: make(chan string),
+		Message: make(chan []byte),
+	}
+
+	AllConnections = make(map[Uid]*Connection)
+	AllChatRooms = make(map[Cid]*ChatRoom)
+}
+
+func (conn *Connection) EventLoop() {
+	for {
+		select {
+		case msg := <-conn.ToWS:
+			marshal, _ := json.Marshal(msg)
+			err := conn.Conn.WriteMessage(websocket.TextMessage, marshal)
+			if err != nil {
+
+			}
+		case msg := <-conn.FromWS:
+			for _, uid := range AllChatRooms[msg.Target].Clients {
+				AllConnections[uid].ToWS <- msg
+			}
+		}
+
+	}
 }
 
 func getMySQLConnection() *gorm.DB {
@@ -56,4 +110,8 @@ func getRedisConnection() *redis.Client {
 
 func GetRedis() *redis.Client {
 	return redisDb
+}
+
+func GetChannel() *DeliverMessage {
+	return channel
 }

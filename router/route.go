@@ -24,6 +24,11 @@ func Route() *gin.Engine {
 		routeRegister.POST("", UserService.Register)
 	}
 
+	routeSocket := ginServer.Group("/enter")
+	{
+		routeSocket.GET("", ChatService.CreateWebSocketConn)
+	}
+
 	routeComplete := ginServer.Group("/complete", middlewares.Authorization())
 	{
 		routeComplete.GET("", UserService.GetUserInfo)
@@ -32,10 +37,10 @@ func Route() *gin.Engine {
 
 	routeMessage := ginServer.Group("/chat", middlewares.Authorization())
 	{
-		routeMessage.POST("/enter", ChatService.EnterChatRoom)
 		routeMessage.POST("/createPeer", ChatService.CreatePeerChatRoom)
 		routeMessage.POST("/message", ChatService.ReceiveMessage)
 		routeMessage.GET("/chatRoom", ChatService.GetAllChatRoom)
+		routeMessage.GET("/changeChatRoom", ChatService.ChangeChatRoom)
 	}
 
 	routeFriends := ginServer.Group("/friends", middlewares.Authorization())

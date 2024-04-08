@@ -82,3 +82,13 @@ func GetChatRoomByCid(cid string) (ChatRoom, error) {
 	}
 	return chatRoom, nil
 }
+
+func IsChatRoomMember(cid string, uid string) (bool, error) {
+	var chatRoomMember ChatRoomMember
+	db := utils.GetMySQLDB()
+	result := db.Model(&ChatRoomMember{}).Where("cid=? and uid=?", cid, uid).First(&chatRoomMember)
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return false, nil
+	}
+	return true, nil
+}

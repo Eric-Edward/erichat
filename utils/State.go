@@ -20,4 +20,6 @@ const (
 	FailedAddGroup
 	FailedLoadApplies
 	FailedDropApply
+	FailedCreateWebSocket
+	NotChatRoomMember
 )

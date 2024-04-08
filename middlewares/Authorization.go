@@ -55,6 +55,7 @@ func Authorization() gin.HandlerFunc {
 			return
 		}
 		c.Header("newToken", jwt)
+		c.Set("self", claims.Uid)
 		c.Next()
 	}
 }

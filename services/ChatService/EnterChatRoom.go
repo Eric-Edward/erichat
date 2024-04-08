@@ -1,40 +1,51 @@
 package ChatService
 
 import (
-	"EriChat/models"
 	"EriChat/utils"
-	"fmt"
+	"encoding/json"
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
 	"net/http"
 )
 
-// EnterChatRoom 这个函数留作为群聊的进群函数吧
-func EnterChatRoom(c *gin.Context) {
-	var chatRoom models.ChatRoom
-	err := c.ShouldBind(&chatRoom)
+var upGrader = websocket.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
+	CheckOrigin: func(r *http.Request) bool {
+		return true
+	},
+}
+
+// CreateWebSocketConn EnterChatRoom 这个函数留作为群聊的进群函数
+func CreateWebSocketConn(c *gin.Context) {
+	uid, _ := c.Get("self")
+	ws, err := upGrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
-		fmt.Println("数据绑定失败！")
 		c.JSON(http.StatusOK, gin.H{
-			"message": "数据信息绑定失败",
-			"code":    utils.FailedBindInfo,
+			"message": "创建websocket失败",
+			"code":    utils.FailedCreateWebSocket,
 		})
 		return
 	}
-	roomInfo, err := models.GetChatRoomByCid(chatRoom.Cid)
-	if err != nil {
-		fmt.Println("聊天室不存在")
-		c.JSON(http.StatusOK, gin.H{
-			"message": "当前查询的聊天室不存在",
-			"code":    utils.FailedFindChatRoom,
-		})
-		return
+	connection := utils.Connection{
+		Conn:   ws,
+		FromWS: make(chan utils.WsMessage),
+		ToWS:   make(chan utils.WsMessage),
 	}
-	//TODO 在ChatRoomNumber中加上自己
-	c.JSON(http.StatusOK, gin.H{
-		"message": "成功进入聊天室",
-		"code":    utils.Success,
-		"cid":     roomInfo.Cid,
-		"channel": roomInfo.Channel,
-	})
-	return
+	utils.AllConnections[uid.(utils.Uid)] = &connection
+	go connection.EventLoop()
+	go func() {
+		for {
+			_, p, err2 := connection.Conn.ReadMessage()
+			if err2 != nil {
+				_ = connection.Conn.Close()
+			}
+			var msg utils.WsMessage
+			err = json.Unmarshal(p, &msg)
+			if err != nil {
+				continue
+			}
+			connection.FromWS <- msg
+		}
+	}()
 }
