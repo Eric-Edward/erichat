@@ -28,9 +28,11 @@ func CreateWebSocketConn(c *gin.Context) {
 		return
 	}
 	connection := utils.Connection{
-		Conn:   ws,
-		FromWS: make(chan utils.WsMessage),
-		ToWS:   make(chan utils.WsMessage),
+		Conn:         ws,
+		FromWS:       make(chan utils.WsMessage),
+		ToWS:         make(chan utils.WsMessage),
+		CloseReceive: make(chan bool),
+		CloseSend:    make(chan bool),
 	}
 
 	_, jwt, err := connection.Conn.ReadMessage()
@@ -61,7 +63,19 @@ func CreateWebSocketConn(c *gin.Context) {
 			if err != nil {
 				_ = connection.Conn.Close()
 			}
-			connection.FromWS <- msg
+			if msg.Type == "message" {
+				connection.FromWS <- msg
+			} else if msg.Type == "quitActiveRooms" {
+				for _, room := range msg.QuitRooms {
+					delete(utils.AllChatRooms, utils.Cid(room))
+				}
+			} else {
+				connection.CloseReceive <- true
+				connection.CloseSend <- true
+				_ = connection.Conn.Close()
+				delete(utils.AllConnections, utils.Uid(uid))
+				return
+			}
 		}
 	}()
 }

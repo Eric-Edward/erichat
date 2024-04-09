@@ -15,8 +15,10 @@ type Uid string
 type Cid string
 
 type WsMessage struct {
-	Target  Cid
-	Message string
+	Type      string
+	Target    Cid
+	Message   string
+	QuitRooms []string
 }
 
 type ChatRoom struct {
@@ -25,9 +27,11 @@ type ChatRoom struct {
 }
 
 type Connection struct {
-	Conn   *websocket.Conn
-	FromWS chan WsMessage
-	ToWS   chan WsMessage
+	Conn         *websocket.Conn
+	FromWS       chan WsMessage
+	ToWS         chan WsMessage
+	CloseReceive chan bool
+	CloseSend    chan bool
 }
 
 var AllConnections map[Uid]*Connection
@@ -69,11 +73,18 @@ func (conn *Connection) ReceiveEvent() {
 			for _, uid := range room.Clients {
 				AllConnections[uid].ToWS <- msg
 			}
+		case <-conn.CloseReceive:
+			return
 		}
 	}
 }
 
 func (conn *Connection) SendEvent() {
+	defer func() {
+		if err := recover(); err != nil {
+			fmt.Println(err)
+		}
+	}()
 	for {
 		select {
 		case msg := <-conn.ToWS:
@@ -82,6 +93,8 @@ func (conn *Connection) SendEvent() {
 			if err != nil {
 				panic(err)
 			}
+		case <-conn.CloseSend:
+			return
 		}
 	}
 }
