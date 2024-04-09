@@ -38,8 +38,6 @@ var mySqlDB *gorm.DB
 
 var redisDb *redis.Client
 
-var channel *DeliverMessage
-
 func InitConfig() {
 	viper.SetConfigName("app")
 	viper.SetConfigFile("config/config.yml")
@@ -51,30 +49,40 @@ func InitConfig() {
 	mySqlDB = getMySQLConnection()
 	redisDb = getRedisConnection()
 
-	channel = &DeliverMessage{
-		Channel: make(chan string),
-		Message: make(chan []byte),
-	}
-
 	AllConnections = make(map[Uid]*Connection)
 	AllChatRooms = make(map[Cid]*ChatRoom)
 }
 
-func (conn *Connection) EventLoop() {
+func (conn *Connection) ReceiveEvent() {
+	defer func() {
+		if err := recover(); err != nil {
+			fmt.Println(err)
+		}
+	}()
+	for {
+		select {
+		case msg := <-conn.FromWS:
+			room, exist := AllChatRooms[msg.Target]
+			if !exist {
+				panic("当前聊天室不存在")
+			}
+			for _, uid := range room.Clients {
+				AllConnections[uid].ToWS <- msg
+			}
+		}
+	}
+}
+
+func (conn *Connection) SendEvent() {
 	for {
 		select {
 		case msg := <-conn.ToWS:
 			marshal, _ := json.Marshal(msg)
 			err := conn.Conn.WriteMessage(websocket.TextMessage, marshal)
 			if err != nil {
-
-			}
-		case msg := <-conn.FromWS:
-			for _, uid := range AllChatRooms[msg.Target].Clients {
-				AllConnections[uid].ToWS <- msg
+				panic(err)
 			}
 		}
-
 	}
 }
 
@@ -110,8 +118,4 @@ func getRedisConnection() *redis.Client {
 
 func GetRedis() *redis.Client {
 	return redisDb
-}
-
-func GetChannel() *DeliverMessage {
-	return channel
 }

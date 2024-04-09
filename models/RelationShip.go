@@ -99,16 +99,22 @@ func HandleRelationShipApply(apply, applied, groupApplied string) (bool, error) 
 	db := utils.GetMySQLDB()
 
 	var relation = RelationShipApply{}
+	var applyName string
+	var appliedName string
 	db.Model(&RelationShipApply{}).Where("apply=? and applied=?", apply, applied).First(&relation)
+	db.Model(&UserBasic{}).Select("user_name").Where("id=?", apply).First(&applyName)
+	db.Model(&UserBasic{}).Select("user_name").Where("id=?", applied).First(&appliedName)
 	var relationshipApply = RelationShip{
-		Uid:   apply,
-		Fid:   applied,
-		Group: relation.Group,
+		Uid:    apply,
+		Fid:    applied,
+		Remark: appliedName,
+		Group:  relation.Group,
 	}
 	var relationshipApplied = RelationShip{
-		Uid:   applied,
-		Fid:   apply,
-		Group: groupApplied,
+		Uid:    applied,
+		Fid:    apply,
+		Remark: applyName,
+		Group:  groupApplied,
 	}
 	tx := db.Begin()
 	result := tx.Model(&RelationShip{}).Create(&relationshipApply)

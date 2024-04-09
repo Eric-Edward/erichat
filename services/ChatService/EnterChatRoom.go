@@ -1,8 +1,9 @@
 package ChatService
 
 import (
+	"EriChat/middlewares"
 	"EriChat/utils"
-	"encoding/json"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"net/http"
@@ -18,7 +19,6 @@ var upGrader = websocket.Upgrader{
 
 // CreateWebSocketConn EnterChatRoom 这个函数留作为群聊的进群函数
 func CreateWebSocketConn(c *gin.Context) {
-	uid, _ := c.Get("self")
 	ws, err := upGrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
@@ -32,18 +32,34 @@ func CreateWebSocketConn(c *gin.Context) {
 		FromWS: make(chan utils.WsMessage),
 		ToWS:   make(chan utils.WsMessage),
 	}
-	utils.AllConnections[uid.(utils.Uid)] = &connection
-	go connection.EventLoop()
+
+	_, jwt, err := connection.Conn.ReadMessage()
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"message": "读取WebSocket失败",
+			"code":    utils.FailedCreateWebSocket,
+		})
+		_ = connection.Conn.Close()
+		return
+	}
+	middlewares.AuthWebSocket(c, string(jwt))
+
+	self, _ := c.Get("self")
+	uid, _ := self.(string)
+	utils.AllConnections[utils.Uid(uid)] = &connection
+	go connection.ReceiveEvent()
+	go connection.SendEvent()
 	go func() {
-		for {
-			_, p, err2 := connection.Conn.ReadMessage()
-			if err2 != nil {
-				_ = connection.Conn.Close()
+		defer func() {
+			if err := recover(); err != nil {
+				fmt.Println("从客户端接受消息失败:", err)
 			}
+		}()
+		for {
 			var msg utils.WsMessage
-			err = json.Unmarshal(p, &msg)
+			err = connection.Conn.ReadJSON(&msg)
 			if err != nil {
-				continue
+				_ = connection.Conn.Close()
 			}
 			connection.FromWS <- msg
 		}

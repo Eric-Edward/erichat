@@ -3,7 +3,6 @@ package models
 import (
 	"EriChat/utils"
 	"errors"
-	"fmt"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"time"
@@ -24,37 +23,30 @@ type ChatRoomMember struct {
 	ChatRoom ChatRoom `gorm:"foreignKey:Cid;references:Cid"`
 }
 
-func CreatePeerChatRoom(channel, u1, u2 string) (string, error) {
+func CreateChatRoom(chatRoomName string, clients []interface{}) (bool, error) {
 	chatRoom := ChatRoom{
 		Cid:     uuid.New().String(),
-		Channel: channel,
+		Channel: chatRoomName,
 	}
 	db := utils.GetMySQLDB()
 	tx := db.Begin()
 	result := db.Create(&chatRoom)
-	if result.RowsAffected != 1 {
+	if result.Error != nil {
 		tx.Rollback()
-		return "", tx.Error
+		return false, tx.Error
 	}
-
-	//TODO 这里还要添加创建当前聊天的用户已经第一个被邀请的用户 [Finish]
-	user1 := ChatRoomMember{
-		Cid: chatRoom.Cid,
-		Uid: u1,
-	}
-	user2 := ChatRoomMember{
-		Cid: chatRoom.Cid,
-		Uid: u2,
-	}
-	r1 := db.Model(&ChatRoomMember{}).Create(&user1)
-	r2 := db.Model(&ChatRoomMember{}).Create(&user2)
-	if r1.RowsAffected != 1 || r2.RowsAffected != 1 {
-		tx.Rollback()
-		fmt.Println("创建用户聊天时失败")
-		return "", errors.Join(r1.Error, r2.Error)
+	for _, client := range clients {
+		result = db.Model(&ChatRoomMember{}).Create(&ChatRoomMember{
+			Cid: chatRoom.Cid,
+			Uid: client.(string),
+		})
+		if result.Error != nil {
+			tx.Rollback()
+			return false, tx.Error
+		}
 	}
 	tx.Commit()
-	return chatRoom.Cid, nil
+	return true, nil
 }
 
 func GetAllChatRoomByUid(uid string) []ChatRoom {

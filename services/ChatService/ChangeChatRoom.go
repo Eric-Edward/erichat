@@ -11,7 +11,6 @@ func ChangeChatRoom(c *gin.Context) {
 	cid := c.Query("cid")
 	uid, _ := c.Get("self")
 
-	// TODO 后面添加是不是聊天室里的人
 	isMember, err := models.IsChatRoomMember(cid, uid.(string))
 	if err != nil || !isMember {
 		c.JSON(http.StatusOK, gin.H{
@@ -27,10 +26,14 @@ func ChangeChatRoom(c *gin.Context) {
 			Cid:     cid,
 			Clients: make([]utils.Uid, 0),
 		}
-		chatRoom.Clients = append(chatRoom.Clients, uid.(utils.Uid))
+		chatRoom.Clients = append(chatRoom.Clients, utils.Uid(uid.(string)))
 		utils.AllChatRooms[utils.Cid(cid)] = &chatRoom
 	} else {
-		room.Clients = append(room.Clients, uid.(utils.Uid))
+		room.Clients = append(room.Clients, utils.Uid(uid.(string)))
 	}
-
+	c.JSON(http.StatusOK, gin.H{
+		"message": "切换当前聊天室成功",
+		"code":    utils.Success,
+	})
+	return
 }
