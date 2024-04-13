@@ -4,4 +4,3 @@ mysql:
   database: "EcChat"
 
 redis:
-  

@@ -60,7 +60,8 @@ func Authorization() gin.HandlerFunc {
 	}
 }
 
-func AuthWebSocket(c *gin.Context, auth string) {
+func AuthWebSocket(c *gin.Context, auth string, conn *utils.Connection) {
+	quitMessage := utils.WsMessage{Message: "重新连接时，身份信息已过期", Target: "", Type: "ServerQuit"}
 	claims, err := utils.ParseJWT(auth)
 	if err != nil {
 		fmt.Println("Parse JWT failed")
@@ -68,6 +69,9 @@ func AuthWebSocket(c *gin.Context, auth string) {
 			"message": "登陆超时！",
 			"code":    utils.FailedParseJWT,
 		})
+
+		conn.ToWS <- quitMessage
+		CloseWebSocket(conn)
 		c.Abort()
 		return
 	}
@@ -79,6 +83,8 @@ func AuthWebSocket(c *gin.Context, auth string) {
 			"message": "用户不存在或用户token过期",
 			"code":    utils.FailedExpiredJWT,
 		})
+		conn.ToWS <- quitMessage
+		CloseWebSocket(conn)
 		c.Abort()
 		return
 	}
@@ -89,10 +95,24 @@ func AuthWebSocket(c *gin.Context, auth string) {
 			"message": "产生新用户信息时出现错误",
 			"code":    utils.FailedGenerateJWT,
 		})
+		conn.ToWS <- quitMessage
+		CloseWebSocket(conn)
 		c.Abort()
 		return
 	}
 	c.Header("newToken", jwt)
 	c.Set("self", claims.Uid)
 	c.Next()
+}
+
+func CloseWebSocket(conn *utils.Connection) {
+	defer func() {
+		if err := recover(); err != nil {
+			fmt.Println("Close WebSocket panic")
+		}
+	}()
+	err := conn.Conn.Close()
+	if err != nil {
+		panic(err)
+	}
 }

@@ -57,8 +57,8 @@ func ReceiveMessage(c *gin.Context) {
 }
 
 func GetAllChatRoom(c *gin.Context) {
-	uid := c.Query("uid")
-	rooms := models.GetAllChatRoomByUid(uid)
+	uid, _ := c.Get("self")
+	rooms := models.GetAllChatRoomByUid(uid.(string))
 	c.JSON(http.StatusOK, gin.H{
 		"message": "获取当前用户的全部聊天时",
 		"code":    utils.Success,

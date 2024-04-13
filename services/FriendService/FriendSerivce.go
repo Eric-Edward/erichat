@@ -9,8 +9,8 @@ import (
 )
 
 func GetAllFriends(c *gin.Context) {
-	uid := c.Query("uid")
-	relations, err := models.GetRelationShipByUid(uid)
+	uid, _ := c.Get("self")
+	relations, err := models.GetRelationShipByUid(uid.(string))
 	if err != nil {
 		fmt.Println("获取当前用户朋友列表失败")
 		c.JSON(http.StatusOK, gin.H{
@@ -81,8 +81,8 @@ func AddFriend(c *gin.Context) {
 }
 
 func GetAllApplyByUid(c *gin.Context) {
-	uid := c.Query("uid")
-	applies, err := models.GetRelationShipApplyByUid(uid)
+	uid, _ := c.Get("self")
+	applies, err := models.GetRelationShipApplyByUid(uid.(string))
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
 			"message": "获取朋友申请失败",
@@ -99,8 +99,8 @@ func GetAllApplyByUid(c *gin.Context) {
 }
 
 func GetGroupByUid(c *gin.Context) {
-	uid := c.Query("uid")
-	groups, err := models.GetAllGroupByUid(uid)
+	uid, _ := c.Get("self")
+	groups, err := models.GetAllGroupByUid(uid.(string))
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
 			"message": "获取用户分组失败",

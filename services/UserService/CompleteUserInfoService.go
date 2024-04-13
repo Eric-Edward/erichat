@@ -17,7 +17,7 @@ func CompleteUserInfo(c *gin.Context) {
 		fmt.Println("数据绑定失败")
 		c.JSON(http.StatusOK, gin.H{
 			"message": "数据绑定失败",
-			"state":   "failed",
+			"code":    utils.FailedBindInfo,
 		})
 		return
 	}
@@ -37,7 +37,7 @@ func CompleteUserInfo(c *gin.Context) {
 	if validatorErr != nil {
 		c.JSON(http.StatusOK, gin.H{
 			"message": "输入的数据格式不正确",
-			"state":   "failed",
+			"code":    utils.FailedBindInfo,
 		})
 		tx.Rollback()
 		return
@@ -49,20 +49,20 @@ func CompleteUserInfo(c *gin.Context) {
 	if updates.RowsAffected == 0 {
 		c.JSON(http.StatusOK, gin.H{
 			"message": "数据更新失败",
-			"state":   "failed",
+			"code":    utils.FailedUpdateUserInfo,
 		})
 		tx.Rollback()
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{
 		"message": "数据更新成功!",
-		"state":   "ok",
+		"code":    utils.Success,
 	})
 	tx.Commit()
 }
 
 func GetUserInfo(c *gin.Context) {
-	uid := c.Query("uuid")
+	uid, _ := c.Get("self")
 	db := utils.GetMySQLDB()
 
 	var findUser models.UserInfo
@@ -71,12 +71,16 @@ func GetUserInfo(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"message": "数据库中不能存在当前用户",
 			"uuid":    uid,
-			"state":   "failed",
+			"code":    utils.FailedFindUser,
 		})
 		return
 	}
 
-	c.JSON(http.StatusOK, findUser)
+	c.JSON(http.StatusOK, gin.H{
+		"message": "获取当前用户信息成功",
+		"code":    utils.Success,
+		"info":    findUser,
+	})
 }
 
 func ValidateMyPhone(level validator.FieldLevel) bool {

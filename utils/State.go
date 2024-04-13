@@ -22,4 +22,5 @@ const (
 	FailedDropApply
 	FailedCreateWebSocket
 	NotChatRoomMember
+	FailedUpdateUserInfo
 )

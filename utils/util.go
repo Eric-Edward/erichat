@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/websocket"
@@ -9,6 +10,7 @@ import (
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"strings"
+	"sync"
 )
 
 type Uid string
@@ -18,12 +20,16 @@ type WsMessage struct {
 	Type      string
 	Target    Cid
 	Message   string
-	QuitRooms []string
+	QuitRooms []string `gorm:"null"`
+	UserName  string
+	Uid       Uid
+	Time      string
 }
 
 type ChatRoom struct {
-	Clients []Uid
+	Clients map[Uid]Uid
 	Cid     string
+	Message []WsMessage
 }
 
 type Connection struct {
@@ -34,13 +40,13 @@ type Connection struct {
 	CloseSend    chan bool
 }
 
-var AllConnections map[Uid]*Connection
+var AllConnections sync.Map
 
-var AllChatRooms map[Cid]*ChatRoom
+var AllChatRooms sync.Map
 
 var mySqlDB *gorm.DB
 
-var redisDb *redis.Client
+var redisDB *redis.Client
 
 func InitConfig() {
 	viper.SetConfigName("app")
@@ -51,10 +57,10 @@ func InitConfig() {
 	}
 
 	mySqlDB = getMySQLConnection()
-	redisDb = getRedisConnection()
+	redisDB = getRedisConnection()
 
-	AllConnections = make(map[Uid]*Connection)
-	AllChatRooms = make(map[Cid]*ChatRoom)
+	AllConnections = sync.Map{}
+	AllChatRooms = sync.Map{}
 }
 
 func (conn *Connection) ReceiveEvent() {
@@ -66,12 +72,13 @@ func (conn *Connection) ReceiveEvent() {
 	for {
 		select {
 		case msg := <-conn.FromWS:
-			room, exist := AllChatRooms[msg.Target]
+			room, exist := AllChatRooms.Load(msg.Target)
 			if !exist {
 				panic("当前聊天室不存在")
 			}
-			for _, uid := range room.Clients {
-				AllConnections[uid].ToWS <- msg
+			for _, uid := range room.(*ChatRoom).Clients {
+				connection, _ := AllConnections.Load(uid)
+				connection.(*Connection).ToWS <- msg
 			}
 		case <-conn.CloseReceive:
 			return
@@ -122,13 +129,18 @@ func GetMySQLDB() *gorm.DB {
 }
 
 func getRedisConnection() *redis.Client {
-	return redis.NewClient(&redis.Options{
+	var conn = redis.NewClient(&redis.Options{
 		Addr:     "localhost:6379",
 		Password: "Tsinghua",
 		DB:       0,
 	})
+	var ctx = context.Background()
+	conn.ConfigSet(ctx, "maxmemory", "100mb")
+	conn.ConfigSet(ctx, "maxmemory-policy", "allkeys-lfu")
+
+	return conn
 }
 
 func GetRedis() *redis.Client {
-	return redisDb
+	return redisDB
 }
