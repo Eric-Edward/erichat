@@ -51,13 +51,13 @@ func CreateChatRoom(chatRoomName string, clients []interface{}) (bool, error) {
 
 func GetAllChatRoomByUid(uid string) []ChatRoom {
 	var chatRooms []ChatRoom
-	var chatRoomNumber ChatRoomMember
+	var chatRoomCid []string
 	db := utils.GetMySQLDB()
-	tx := db.Model(&ChatRoomMember{}).Where("uid=?", uid).Find(&chatRoomNumber)
+	tx := db.Model(&ChatRoomMember{}).Select("cid").Where("uid=?", uid).Find(&chatRoomCid)
 	if tx.Error != nil {
 		return nil
 	}
-	tx = db.Model(&ChatRoom{}).Where("cid=?", chatRoomNumber.Cid).Find(&chatRooms)
+	tx = db.Model(&ChatRoom{}).Where("cid in ?", chatRoomCid).Find(&chatRooms)
 	if tx.Error != nil {
 		return nil
 	}

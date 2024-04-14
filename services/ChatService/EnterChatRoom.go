@@ -1,16 +1,12 @@
 package ChatService
 
 import (
+	"EriChat/global"
 	"EriChat/middlewares"
-	"EriChat/models"
 	"EriChat/utils"
-	"context"
-	"encoding/json"
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"net/http"
-	"time"
 )
 
 var upGrader = websocket.Upgrader{
@@ -49,6 +45,7 @@ func CreateWebSocketConn(c *gin.Context) {
 		return
 	}
 	middlewares.AuthWebSocket(c, string(jwt), &connection)
+	persistenceData := global.PersistenceData()
 
 	self, _ := c.Get("self")
 	uid, _ := self.(string)
@@ -64,14 +61,11 @@ func CreateWebSocketConn(c *gin.Context) {
 			}
 			if msg.Type == "message" {
 				connection.FromWS <- msg
-				HandleMessage(msg)
+				persistenceData <- msg
 			} else if msg.Type == "quitActiveRooms" {
 				for _, qRoom := range msg.QuitRooms {
 					if room, ok := utils.AllChatRooms.Load(utils.Cid(qRoom)); ok {
 						delete(room.(*utils.ChatRoom).Clients, utils.Uid(uid))
-						if len(room.(*utils.ChatRoom).Clients) == 0 {
-							models.AddMessageToTable(room.(*utils.ChatRoom))
-						}
 					}
 				}
 			} else {
@@ -83,37 +77,4 @@ func CreateWebSocketConn(c *gin.Context) {
 			}
 		}
 	}()
-}
-
-func HandleMessage(msg utils.WsMessage) {
-	defer func() {
-		if err := recover(); err != nil {
-			fmt.Println(err)
-		}
-	}()
-
-	value, _ := utils.AllChatRooms.Load(msg.Target)
-	room := value.(*utils.ChatRoom)
-	if len(room.Clients) != 1024 {
-		room.Message = append(room.Message, msg)
-	} else {
-		redis := utils.GetRedis()
-		var ctx = context.Background()
-		var messages []utils.WsMessage
-		err := json.Unmarshal([]byte(redis.Get(ctx, string(msg.Target)).Val()), &messages)
-		if err != nil {
-			panic(err)
-		}
-
-		messages = append(messages, room.Message...)
-		marshal, err := json.Marshal(messages)
-		_, err = redis.Set(ctx, string(msg.Target), marshal, time.Hour).Result()
-		if err != nil {
-			panic(err)
-		}
-
-		//将信息放到redis中后，将内存释放
-		room.Message = room.Message[:0]
-	}
-
 }

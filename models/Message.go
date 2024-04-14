@@ -2,16 +2,7 @@ package models
 
 import (
 	"EriChat/utils"
-	"context"
-	"encoding/json"
-	"fmt"
 	"gorm.io/gorm"
-)
-
-const (
-	PIC   string = "picture"
-	TEXT  string = "text"
-	VIDEO string = "video"
 )
 
 type Message struct {
@@ -24,33 +15,13 @@ type Message struct {
 
 // TODO 每一次的getmessage也应该先从redis中获取，如果redis中不存在的话，然后再去mysql中读取
 
-func AddMessageToTable(room *utils.ChatRoom) {
-	defer func() {
-		if err := recover(); err != nil {
-			fmt.Println(err)
-		}
-	}()
-
-	redis := utils.GetRedis()
-	var ctx = context.Background()
-	result, err := redis.Get(ctx, room.Cid).Result()
-	if err != nil {
-		panic(err)
-	}
-	var messages []utils.WsMessage
-	err = json.Unmarshal([]byte(result), &messages)
-	if err != nil {
-		panic(err)
-	}
-
-	var chatRoomName string
+func GetAllMessage(target string) ([]*Message, error) {
+	var messages []*Message
+	tableName := "messages" + target
 	db := utils.GetMySQLDB()
-	tx := db.Model(&ChatRoom{}).Select("channel").First(&chatRoomName)
+	tx := db.Table(tableName).Model(&Message{}).Find(&messages)
 	if tx.Error != nil {
-		panic(tx.Error)
+		return nil, tx.Error
 	}
-	err = db.Table("message_" + chatRoomName).AutoMigrate(&Message{})
-	if err != nil {
-		panic(err)
-	}
+	return messages, nil
 }

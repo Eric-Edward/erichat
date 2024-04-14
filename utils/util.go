@@ -29,7 +29,6 @@ type WsMessage struct {
 type ChatRoom struct {
 	Clients map[Uid]Uid
 	Cid     string
-	Message []WsMessage
 }
 
 type Connection struct {
@@ -61,6 +60,7 @@ func InitConfig() {
 
 	AllConnections = sync.Map{}
 	AllChatRooms = sync.Map{}
+
 }
 
 func (conn *Connection) ReceiveEvent() {

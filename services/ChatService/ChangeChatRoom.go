@@ -3,11 +3,8 @@ package ChatService
 import (
 	"EriChat/models"
 	"EriChat/utils"
-	"context"
-	"encoding/json"
 	"github.com/gin-gonic/gin"
 	"net/http"
-	"time"
 )
 
 func ChangeChatRoom(c *gin.Context) {
@@ -33,13 +30,6 @@ func ChangeChatRoom(c *gin.Context) {
 		utils.AllChatRooms.Store(utils.Cid(cid), &chatRoom)
 	} else {
 		room.(*utils.ChatRoom).Clients[utils.Uid(uid.(string))] = utils.Uid(uid.(string))
-	}
-	var ctx = context.Background()
-	redis := utils.GetRedis()
-	marshal, _ := json.Marshal([]utils.WsMessage{})
-	_, err = redis.Get(ctx, cid).Result()
-	if err != nil {
-		redis.Set(ctx, cid, marshal, time.Hour)
 	}
 
 	c.JSON(http.StatusOK, gin.H{

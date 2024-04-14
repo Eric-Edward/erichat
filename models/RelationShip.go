@@ -3,6 +3,7 @@ package models
 import (
 	"EriChat/utils"
 	"fmt"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -12,6 +13,7 @@ type RelationShip struct {
 	Fid    string `gorm:"not null"`
 	Remark string
 	Group  string `gorm:"not null"`
+	Cid    string `gorm:"not null"`
 	Groups Group  `gorm:"foreignKey:Group;references:GroupName"`
 }
 
@@ -104,31 +106,8 @@ func HandleRelationShipApply(apply, applied, groupApplied string) (bool, error) 
 	db.Model(&RelationShipApply{}).Where("apply=? and applied=?", apply, applied).First(&relation)
 	db.Model(&UserBasic{}).Select("user_name").Where("id=?", apply).First(&applyName)
 	db.Model(&UserBasic{}).Select("user_name").Where("id=?", applied).First(&appliedName)
-	var relationshipApply = RelationShip{
-		Uid:    apply,
-		Fid:    applied,
-		Remark: appliedName,
-		Group:  relation.Group,
-	}
-	var relationshipApplied = RelationShip{
-		Uid:    applied,
-		Fid:    apply,
-		Remark: applyName,
-		Group:  groupApplied,
-	}
+
 	tx := db.Begin()
-	result := tx.Model(&RelationShip{}).Create(&relationshipApply)
-	if result.Error != nil {
-		tx.Rollback()
-		fmt.Println("添加关系失败")
-		return false, tx.Error
-	}
-	result = tx.Model(&RelationShip{}).Create(&relationshipApplied)
-	if result.Error != nil {
-		tx.Rollback()
-		fmt.Println("添加关系失败")
-		return false, tx.Error
-	}
 	_, err := DropRelationShipApply(apply, applied)
 	if err != nil {
 		tx.Rollback()
@@ -141,6 +120,46 @@ func HandleRelationShipApply(apply, applied, groupApplied string) (bool, error) 
 		fmt.Println("删除请求关系失败")
 		return false, err
 	}
+
+	//这个cid用于建立一个两个之间的p2p交流，别人是无法加入的
+	cid := uuid.New().String()
+	result := tx.Model(&ChatRoom{}).Create(&ChatRoom{
+		Cid:     cid,
+		Channel: cid,
+	})
+	if result.Error != nil {
+		tx.Rollback()
+		fmt.Println("创建点对点聊天室失败")
+		return false, tx.Error
+	}
+
+	var relationshipApply = RelationShip{
+		Uid:    apply,
+		Fid:    applied,
+		Remark: appliedName,
+		Group:  relation.Group,
+		Cid:    cid,
+	}
+	var relationshipApplied = RelationShip{
+		Uid:    applied,
+		Fid:    apply,
+		Remark: applyName,
+		Group:  groupApplied,
+		Cid:    cid,
+	}
+	result = tx.Model(&RelationShip{}).Create(&relationshipApply)
+	if result.Error != nil {
+		tx.Rollback()
+		fmt.Println("添加关系失败")
+		return false, tx.Error
+	}
+	result = tx.Model(&RelationShip{}).Create(&relationshipApplied)
+	if result.Error != nil {
+		tx.Rollback()
+		fmt.Println("添加关系失败")
+		return false, tx.Error
+	}
+
 	tx.Commit()
 	return true, nil
 }
