@@ -39,7 +39,7 @@ func Route() *gin.Engine {
 	{
 		routeMessage.POST("/create", ChatService.CreateChatRoom)
 		routeMessage.POST("/message", ChatService.ReceiveMessage)
-		routeMessage.GET("/chatRoom", ChatService.GetAllChatRoom)
+		routeMessage.GET("/chatRoom", ChatService.GetAllChatGroup)
 		routeMessage.GET("/changeChatRoom", ChatService.ChangeChatRoom)
 	}
 

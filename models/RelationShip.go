@@ -126,34 +126,34 @@ func HandleRelationShipApply(apply, applied, groupApplied string) (bool, error) 
 	result := tx.Model(&ChatRoom{}).Create(&ChatRoom{
 		Cid:     cid,
 		Channel: cid,
+		Type:    "peer",
 	})
 	if result.Error != nil {
 		tx.Rollback()
 		fmt.Println("创建点对点聊天室失败")
 		return false, tx.Error
 	}
-
-	var relationshipApply = RelationShip{
-		Uid:    apply,
-		Fid:    applied,
-		Remark: appliedName,
-		Group:  relation.Group,
-		Cid:    cid,
-	}
-	var relationshipApplied = RelationShip{
-		Uid:    applied,
-		Fid:    apply,
-		Remark: applyName,
-		Group:  groupApplied,
-		Cid:    cid,
-	}
-	result = tx.Model(&RelationShip{}).Create(&relationshipApply)
+	result = tx.Model(&ChatRoomMember{}).Create(&[]ChatRoomMember{
+		{Cid: cid, Uid: apply},
+		{Cid: cid, Uid: applied},
+	})
 	if result.Error != nil {
 		tx.Rollback()
-		fmt.Println("添加关系失败")
+		fmt.Println("添加聊天室成员失败")
 		return false, tx.Error
 	}
-	result = tx.Model(&RelationShip{}).Create(&relationshipApplied)
+	result = tx.Model(&RelationShip{}).Create(&[]RelationShip{
+		{Uid: apply,
+			Fid:    applied,
+			Remark: appliedName,
+			Group:  relation.Group,
+			Cid:    cid},
+		{Uid: applied,
+			Fid:    apply,
+			Remark: applyName,
+			Group:  groupApplied,
+			Cid:    cid},
+	})
 	if result.Error != nil {
 		tx.Rollback()
 		fmt.Println("添加关系失败")

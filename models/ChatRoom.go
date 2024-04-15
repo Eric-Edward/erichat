@@ -14,6 +14,7 @@ type ChatRoom struct {
 	UpdatedAt time.Time
 	DeletedAt gorm.DeletedAt `gorm:"index"`
 	Channel   string         `gorm:"unique;not null"`
+	Type      string         `gorm:"not null"`
 }
 
 type ChatRoomMember struct {
@@ -27,6 +28,7 @@ func CreateChatRoom(chatRoomName string, clients []interface{}) (bool, error) {
 	chatRoom := ChatRoom{
 		Cid:     uuid.New().String(),
 		Channel: chatRoomName,
+		Type:    "group",
 	}
 	db := utils.GetMySQLDB()
 	tx := db.Begin()
@@ -49,7 +51,7 @@ func CreateChatRoom(chatRoomName string, clients []interface{}) (bool, error) {
 	return true, nil
 }
 
-func GetAllChatRoomByUid(uid string) []ChatRoom {
+func GetAllChatGroupByUid(uid string) []ChatRoom {
 	var chatRooms []ChatRoom
 	var chatRoomCid []string
 	db := utils.GetMySQLDB()
@@ -57,7 +59,7 @@ func GetAllChatRoomByUid(uid string) []ChatRoom {
 	if tx.Error != nil {
 		return nil
 	}
-	tx = db.Model(&ChatRoom{}).Where("cid in ?", chatRoomCid).Find(&chatRooms)
+	tx = db.Model(&ChatRoom{}).Where("cid in ? and type = 'group'", chatRoomCid).Find(&chatRooms)
 	if tx.Error != nil {
 		return nil
 	}
