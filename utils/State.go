@@ -23,4 +23,5 @@ const (
 	FailedCreateWebSocket
 	NotChatRoomMember
 	FailedUpdateUserInfo
+	FailedLoadHistoryMessages
 )

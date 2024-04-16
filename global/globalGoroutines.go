@@ -33,10 +33,11 @@ func persistenceDataEventLoop() {
 					panic(err)
 				}
 				tx.Table(tableName).Create(&models.Message{
-					SendBy:  string(msg.Uid),
-					Content: msg.Message,
-					Url:     "",
-					Size:    int64(len(msg.Message)),
+					Target:   msg.Target,
+					Type:     msg.Type,
+					Message:  msg.Message,
+					UserName: msg.UserName,
+					Uid:      msg.Uid,
 				})
 				if tx.Error != nil {
 					tx.Rollback()

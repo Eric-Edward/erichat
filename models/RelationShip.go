@@ -133,6 +133,12 @@ func HandleRelationShipApply(apply, applied, groupApplied string) (bool, error) 
 		fmt.Println("创建点对点聊天室失败")
 		return false, tx.Error
 	}
+	err = CreateMessageTable(cid, tx)
+	if err != nil {
+		tx.Rollback()
+		fmt.Println("生成对应消息表失败")
+		return false, err
+	}
 	result = tx.Model(&ChatRoomMember{}).Create(&[]ChatRoomMember{
 		{Cid: cid, Uid: apply},
 		{Cid: cid, Uid: applied},
