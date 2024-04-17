@@ -47,6 +47,11 @@ func CreateChatRoom(chatRoomName string, clients []interface{}) (bool, error) {
 			return false, tx.Error
 		}
 	}
+	err := tx.Table("messages_" + chatRoom.Cid).AutoMigrate(&Message{})
+	if err != nil {
+		tx.Rollback()
+		return false, tx.Error
+	}
 	tx.Commit()
 	return true, nil
 }
@@ -83,6 +88,15 @@ func IsChatRoomMember(cid string, uid string) (bool, error) {
 	result := db.Model(&ChatRoomMember{}).Where("cid=? and uid=?", cid, uid).First(&chatRoomMember)
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 		return false, nil
+	}
+	return true, nil
+}
+
+func UpdateChatRoom(chatRoom ChatRoom) (bool, error) {
+	db := utils.GetMySQLDB()
+	result := db.Model(&ChatRoom{}).Where("cid=?", chatRoom.Cid).Update("channel", chatRoom.Channel)
+	if result.Error != nil {
+		return false, result.Error
 	}
 	return true, nil
 }

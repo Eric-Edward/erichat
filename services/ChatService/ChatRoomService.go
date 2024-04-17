@@ -17,3 +17,21 @@ func GetAllChatGroup(c *gin.Context) {
 	})
 	return
 }
+
+func GetChatRoomInfoByCid(c *gin.Context) {
+	cid := c.Query("cid")
+	room, err := models.GetChatRoomByCid(cid)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"message": "查询当前聊天室信息失败",
+			"code":    utils.FailedFindChatRoom,
+		})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"message": "查询聊天室信息成功",
+		"code":    utils.Success,
+		"room":    room,
+	})
+	return
+}

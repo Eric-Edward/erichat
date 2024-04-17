@@ -63,8 +63,13 @@ func CompleteUserInfo(c *gin.Context) {
 
 func GetUserInfo(c *gin.Context) {
 	uid, _ := c.Get("self")
+	cid := c.Query("cid")
 	db := utils.GetMySQLDB()
-
+	if cid != "" {
+		var fid string
+		db.Model(&models.ChatRoomMember{}).Select("uid").Where("cid = ? and uid <> ?", cid, uid).First(&fid)
+		uid = fid
+	}
 	var findUser models.UserInfo
 	db.Model(&models.UserBasic{}).Where("id=?", uid).Limit(1).Find(&findUser)
 	if findUser.ID != uid {
@@ -89,4 +94,55 @@ func ValidateMyPhone(level validator.FieldLevel) bool {
 		return false
 	}
 	return matched
+}
+
+func CompleteGroupInfo(c *gin.Context) {
+	var room models.ChatRoom
+	err := c.ShouldBind(&room)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"message": "绑定数据失败",
+			"code":    utils.FailedBindInfo,
+		})
+		return
+	}
+	ok, err := models.UpdateChatRoom(room)
+	if err != nil || !ok {
+		c.JSON(http.StatusOK, gin.H{
+			"message": "更新群聊数据失败",
+			"code":    utils.FailedUpdateGroupInfo,
+		})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"message": "更新群聊数据成功",
+		"code":    utils.Success,
+	})
+	return
+}
+
+func UploadUserAvatar(c *gin.Context) {
+	uid, _ := c.Get("self")
+	var user models.UserBasic
+	err := c.ShouldBind(&user)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"message": "绑定数据失败",
+			"code":    utils.FailedBindInfo,
+		})
+		return
+	}
+	ok, err := models.UpdateUserAvatar(uid.(string), user.Avatar)
+	if err != nil || !ok {
+		c.JSON(http.StatusOK, gin.H{
+			"message": "更新用户头像失败",
+			"code":    utils.FailedUpdateUserInfo,
+		})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"message": "成功更新用户头像",
+		"code":    utils.Success,
+	})
+	return
 }
