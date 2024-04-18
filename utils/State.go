@@ -25,4 +25,5 @@ const (
 	FailedUpdateUserInfo
 	FailedUpdateGroupInfo
 	FailedLoadHistoryMessages
+	FailedLoadUserAvatar
 )

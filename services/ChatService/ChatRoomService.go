@@ -35,3 +35,28 @@ func GetChatRoomInfoByCid(c *gin.Context) {
 	})
 	return
 }
+
+func UploadChatRoomAvatar(c *gin.Context) {
+	var chatRoom models.ChatRoom
+	err := c.BindJSON(&chatRoom)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"message": "绑定信息失败",
+			"code":    utils.FailedBindInfo,
+		})
+		return
+	}
+	ok, err := models.UploadChatRoomAvatar(chatRoom)
+	if err != nil || !ok {
+		c.JSON(http.StatusOK, gin.H{
+			"message": "更新聊天室头像失败",
+			"code":    utils.FailedLoadUserAvatar,
+		})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"message": "更新聊天室头像成功",
+		"code":    utils.Success,
+	})
+	return
+}

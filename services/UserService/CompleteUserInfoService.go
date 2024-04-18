@@ -123,16 +123,17 @@ func CompleteGroupInfo(c *gin.Context) {
 
 func UploadUserAvatar(c *gin.Context) {
 	uid, _ := c.Get("self")
-	var user models.UserBasic
-	err := c.ShouldBind(&user)
+	var avatar models.UserAvatar
+	err := c.ShouldBind(&avatar)
 	if err != nil {
+		fmt.Println("a?")
 		c.JSON(http.StatusOK, gin.H{
 			"message": "绑定数据失败",
 			"code":    utils.FailedBindInfo,
 		})
 		return
 	}
-	ok, err := models.UpdateUserAvatar(uid.(string), user.Avatar)
+	ok, err := models.UpdateUserAvatar(uid.(string), avatar)
 	if err != nil || !ok {
 		c.JSON(http.StatusOK, gin.H{
 			"message": "更新用户头像失败",
@@ -145,4 +146,23 @@ func UploadUserAvatar(c *gin.Context) {
 		"code":    utils.Success,
 	})
 	return
+}
+
+func GetUserAvatar(c *gin.Context) {
+	fid := c.Query("fid")
+	avatar, err := models.GetUserAvatarByID(fid)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"message": "获取用户头像失败",
+			"code":    utils.FailedLoadUserAvatar,
+		})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"message": "获取用户头像成功",
+		"code":    utils.Success,
+		"avatar":  avatar,
+	})
+	return
+
 }

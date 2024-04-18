@@ -32,6 +32,7 @@ func Route() *gin.Engine {
 	routeComplete := ginServer.Group("/complete", middlewares.Authorization())
 	{
 		routeComplete.GET("", UserService.GetUserInfo)
+		routeComplete.GET("/avatar", UserService.GetUserAvatar)
 		routeComplete.POST("/user", UserService.CompleteUserInfo)
 		routeComplete.POST("/avatar", UserService.UploadUserAvatar)
 		routeComplete.POST("/group", UserService.CompleteGroupInfo)
@@ -41,6 +42,7 @@ func Route() *gin.Engine {
 	{
 		routeChatRoom.GET("/message", ChatService.GetMessageByCid)
 		routeChatRoom.POST("/create", ChatService.CreateChatRoom)
+		routeChatRoom.POST("/avatar", ChatService.UploadChatRoomAvatar)
 		routeChatRoom.GET("/roomInfo", ChatService.GetChatRoomInfoByCid)
 		routeChatRoom.GET("/chatRoom", ChatService.GetAllChatGroup)
 		routeChatRoom.GET("/changeChatRoom", ChatService.ChangeChatRoom)

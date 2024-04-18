@@ -9,12 +9,14 @@ import (
 )
 
 type ChatRoom struct {
-	Cid       string `gorm:"primaryKey"`
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	DeletedAt gorm.DeletedAt `gorm:"index"`
-	Channel   string         `gorm:"unique;not null"`
-	Type      string         `gorm:"not null"`
+	Cid        string `gorm:"primaryKey"`
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
+	DeletedAt  gorm.DeletedAt `gorm:"index"`
+	Channel    string         `gorm:"unique;not null"`
+	Type       string         `gorm:"not null"`
+	Avatar     string
+	AvatarType string
 }
 
 type ChatRoomMember struct {
@@ -98,5 +100,17 @@ func UpdateChatRoom(chatRoom ChatRoom) (bool, error) {
 	if result.Error != nil {
 		return false, result.Error
 	}
+	return true, nil
+}
+
+func UploadChatRoomAvatar(chatRoom ChatRoom) (bool, error) {
+	db := utils.GetMySQLDB()
+	tx := db.Begin()
+	result := tx.Model(&ChatRoom{}).Where("cid=?", chatRoom.Cid).Updates(chatRoom)
+	if result.Error != nil || result.RowsAffected == 0 {
+		tx.Rollback()
+		return false, errors.Join(tx.Error, errors.New("更新失败"))
+	}
+	tx.Commit()
 	return true, nil
 }

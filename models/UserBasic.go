@@ -20,6 +20,7 @@ type UserBasic struct {
 	Phone    string
 	Email    string
 	Avatar   string
+	Type     string
 }
 
 type UserInfo struct {
@@ -29,11 +30,17 @@ type UserInfo struct {
 	Phone    string `validate:"isPhoneNumber"`
 	Email    string `validate:"email"`
 	Avatar   string
+	Type     string
 }
 
 type Client struct {
 	ID       string
 	UserName string
+}
+
+type UserAvatar struct {
+	Avatar string
+	Type   string
 }
 
 func GetUserByID(id string) (UserBasic, error) {
@@ -58,14 +65,24 @@ func GetAllClientsByUserName(username string) ([]Client, error) {
 	return clients, nil
 }
 
-func UpdateUserAvatar(id string, avatar string) (bool, error) {
+func UpdateUserAvatar(id string, avatar UserAvatar) (bool, error) {
 	db := utils.GetMySQLDB()
 	tx := db.Begin()
-	result := tx.Model(&UserBasic{}).Where("id=?", id).Update("avatar", avatar)
+	result := tx.Model(&UserBasic{}).Where("id=?", id).Updates(avatar)
 	if result.Error != nil || result.RowsAffected == 0 {
 		tx.Rollback()
 		return false, errors.Join(result.Error, errors.New("当前用户不存在"))
 	}
 	tx.Commit()
 	return true, nil
+}
+
+func GetUserAvatarByID(id string) (UserAvatar, error) {
+	var user UserAvatar
+	db := utils.GetMySQLDB()
+	result := db.Model(&UserBasic{}).Where("id=?", id).First(&user)
+	if result.Error != nil {
+		return user, result.Error
+	}
+	return user, nil
 }
