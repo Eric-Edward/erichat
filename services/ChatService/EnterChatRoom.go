@@ -4,6 +4,7 @@ import (
 	"EriChat/global"
 	"EriChat/middlewares"
 	"EriChat/utils"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"net/http"
@@ -46,6 +47,7 @@ func CreateWebSocketConn(c *gin.Context) {
 	}
 	middlewares.AuthWebSocket(c, string(jwt), &connection)
 	persistenceData := global.PersistenceData()
+	confirmData := global.ConfirmData()
 
 	self, _ := c.Get("self")
 	uid, _ := self.(string)
@@ -53,22 +55,30 @@ func CreateWebSocketConn(c *gin.Context) {
 	go connection.ReceiveEvent()
 	go connection.SendEvent()
 	go func() {
+		defer func() {
+			if err := recover(); err != nil {
+				fmt.Println(err)
+			}
+		}()
 		for {
 			var msg utils.WsMessage
 			err = connection.Conn.ReadJSON(&msg)
 			if err != nil {
 				_ = connection.Conn.Close()
 			}
-			if msg.Type == "message" {
+			switch msg.Type {
+			case "message":
 				connection.FromWS <- msg
 				persistenceData <- msg
-			} else if msg.Type == "quitActiveRooms" {
+			case "confirm":
+				confirmData <- msg
+			case "quitActiveRooms":
 				for _, qRoom := range msg.QuitRooms {
 					if room, ok := utils.AllChatRooms.Load(utils.Cid(qRoom)); ok {
 						delete(room.(*utils.ChatRoom).Clients, utils.Uid(uid))
 					}
 				}
-			} else {
+			case "quit":
 				connection.CloseReceive <- true
 				connection.CloseSend <- true
 				utils.AllConnections.Delete(utils.Uid(uid))

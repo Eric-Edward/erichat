@@ -7,14 +7,15 @@ import (
 )
 
 var persistenceData chan utils.WsMessage
+var confirmData chan utils.WsMessage
 
 func InitGlobalGoroutines() {
 	persistenceData = make(chan utils.WsMessage)
-	persistenceDataEventLoop()
-
+	confirmData = make(chan utils.WsMessage)
+	messageEventLoop()
 }
 
-func persistenceDataEventLoop() {
+func messageEventLoop() {
 	go func() {
 		defer func() {
 			if err := recover(); err != nil {
@@ -44,6 +45,14 @@ func persistenceDataEventLoop() {
 					panic(err)
 				}
 				tx.Commit()
+			case msg := <-confirmData:
+				db := utils.GetMySQLDB()
+				tx := db.Begin()
+				result := tx.Model(&models.ChatRoomMember{}).Where("cid=? and uid=? and record<?", msg.Target, msg.Uid, msg.Message).Update("record", msg.Message)
+				if result.Error != nil {
+					tx.Rollback()
+					panic(tx.Error)
+				}
 			}
 		}
 	}()
@@ -51,3 +60,4 @@ func persistenceDataEventLoop() {
 func PersistenceData() chan utils.WsMessage {
 	return persistenceData
 }
+func ConfirmData() chan utils.WsMessage { return confirmData }

@@ -21,9 +21,21 @@ type ChatRoom struct {
 
 type ChatRoomMember struct {
 	gorm.Model
-	Cid      string   `gorm:"not null;size:191"`
-	Uid      string   `gorm:"not null"`
+	Cid      string `gorm:"not null;size:191"`
+	Uid      string `gorm:"not null"`
+	Record   uint
 	ChatRoom ChatRoom `gorm:"foreignKey:Cid;references:Cid"`
+}
+
+type ChatRoomAside struct {
+	Cid        string `gorm:"primaryKey"`
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
+	DeletedAt  gorm.DeletedAt `gorm:"index"`
+	Channel    string         `gorm:"unique;not null"`
+	Type       string         `gorm:"not null"`
+	Avatar     string
+	AvatarType string
 }
 
 func CreateChatRoom(chatRoomName string, clients []interface{}) (bool, error) {
@@ -41,8 +53,9 @@ func CreateChatRoom(chatRoomName string, clients []interface{}) (bool, error) {
 	}
 	for _, client := range clients {
 		result = db.Model(&ChatRoomMember{}).Create(&ChatRoomMember{
-			Cid: chatRoom.Cid,
-			Uid: client.(string),
+			Cid:    chatRoom.Cid,
+			Uid:    client.(string),
+			Record: 0,
 		})
 		if result.Error != nil {
 			tx.Rollback()

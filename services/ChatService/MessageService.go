@@ -4,6 +4,7 @@ import (
 	"EriChat/models"
 	"EriChat/utils"
 	"github.com/gin-gonic/gin"
+	"math"
 	"net/http"
 	"strconv"
 )
@@ -20,9 +21,14 @@ func GetMessageByCid(c *gin.Context) {
 		})
 		return
 	}
-
-	uend, _ := strconv.Atoi(end)
-	messages, err := models.GetMessageByCid(cid, uint(uend))
+	var uend uint
+	if end != "" {
+		e, _ := strconv.Atoi(end)
+		uend = uint(e)
+	} else {
+		uend = math.MaxUint
+	}
+	messages, err := models.GetMessageByCid(cid, uend)
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
 			"message": "获取聊天室历史信息失败",

@@ -140,8 +140,8 @@ func HandleRelationShipApply(apply, applied, groupApplied string) (bool, error) 
 		return false, err
 	}
 	result = tx.Model(&ChatRoomMember{}).Create(&[]ChatRoomMember{
-		{Cid: cid, Uid: apply},
-		{Cid: cid, Uid: applied},
+		{Cid: cid, Uid: apply, Record: 0},
+		{Cid: cid, Uid: applied, Record: 0},
 	})
 	if result.Error != nil {
 		tx.Rollback()

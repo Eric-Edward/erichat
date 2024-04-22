@@ -3,6 +3,7 @@ package models
 import (
 	"EriChat/utils"
 	"gorm.io/gorm"
+	"slices"
 )
 
 type Message struct {
@@ -22,6 +23,7 @@ func GetMessageByCid(target string, end uint) ([]*Message, error) {
 	if tx.Error != nil {
 		return nil, tx.Error
 	}
+	slices.Reverse(messages)
 	return messages, nil
 }
 

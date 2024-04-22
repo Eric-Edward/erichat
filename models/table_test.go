@@ -13,8 +13,8 @@ func TestChatRoom(t *testing.T) {
 	//err = db.AutoMigrate(&UserBasic{})
 	//err = db.AutoMigrate(&Group{})
 
-	err = db.AutoMigrate(&ChatRoom{})
-	//err = db.AutoMigrate(&ChatRoomMember{})
+	//err = db.AutoMigrate(&ChatRoom{})
+	err = db.AutoMigrate(&ChatRoomMember{})
 	//err = db.AutoMigrate(&RelationShip{})
 	if err != nil {
 		fmt.Println("表创建失败")
