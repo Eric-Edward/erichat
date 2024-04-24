@@ -126,7 +126,6 @@ func UploadUserAvatar(c *gin.Context) {
 	var avatar models.UserAvatar
 	err := c.ShouldBind(&avatar)
 	if err != nil {
-		fmt.Println("a?")
 		c.JSON(http.StatusOK, gin.H{
 			"message": "绑定数据失败",
 			"code":    utils.FailedBindInfo,

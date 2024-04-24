@@ -6,16 +6,13 @@ import (
 	"fmt"
 )
 
-var persistenceData chan utils.WsMessage
-var confirmData chan utils.WsMessage
-
 func InitGlobalGoroutines() {
-	persistenceData = make(chan utils.WsMessage)
-	confirmData = make(chan utils.WsMessage)
 	messageEventLoop()
 }
 
 func messageEventLoop() {
+	persistenceData := utils.PersistenceData()
+	confirmData := utils.ConfirmData()
 	go func() {
 		defer func() {
 			if err := recover(); err != nil {
@@ -33,18 +30,23 @@ func messageEventLoop() {
 					tx.Rollback()
 					panic(err)
 				}
-				tx.Table(tableName).Create(&models.Message{
+				var message = models.Message{
 					Target:   msg.Target,
 					Type:     msg.Type,
 					Message:  msg.Message,
 					UserName: msg.UserName,
 					Uid:      msg.Uid,
-				})
+				}
+				tx.Table(tableName).Create(&message)
 				if tx.Error != nil {
 					tx.Rollback()
 					panic(err)
 				}
 				tx.Commit()
+
+				msg.ID = message.ID
+				connection, _ := utils.AllConnections.Load(msg.Uid)
+				connection.(*utils.Connection).FromWS <- msg
 			case msg := <-confirmData:
 				db := utils.GetMySQLDB()
 				tx := db.Begin()
@@ -53,11 +55,8 @@ func messageEventLoop() {
 					tx.Rollback()
 					panic(tx.Error)
 				}
+				tx.Commit()
 			}
 		}
 	}()
 }
-func PersistenceData() chan utils.WsMessage {
-	return persistenceData
-}
-func ConfirmData() chan utils.WsMessage { return confirmData }

@@ -127,3 +127,13 @@ func UploadChatRoomAvatar(chatRoom ChatRoom) (bool, error) {
 	tx.Commit()
 	return true, nil
 }
+
+func GetChatRoomMessageDivider(uid, cid string) (uint, error) {
+	var record uint
+	db := utils.GetMySQLDB()
+	tx := db.Model(&ChatRoomMember{}).Select("record").Where("uid=? and cid=?", uid, cid).First(&record)
+	if errors.Is(tx.Error, gorm.ErrRecordNotFound) {
+		return 0, tx.Error
+	}
+	return record, nil
+}

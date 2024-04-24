@@ -1,13 +1,13 @@
 package ChatService
 
 import (
-	"EriChat/global"
 	"EriChat/middlewares"
 	"EriChat/utils"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"net/http"
+	"time"
 )
 
 var upGrader = websocket.Upgrader{
@@ -46,15 +46,19 @@ func CreateWebSocketConn(c *gin.Context) {
 		return
 	}
 	middlewares.AuthWebSocket(c, string(jwt), &connection)
-	persistenceData := global.PersistenceData()
-	confirmData := global.ConfirmData()
+	fmt.Println("认证成功！")
+	confirmData := utils.ConfirmData()
+	persistenceData := utils.PersistenceData()
 
 	self, _ := c.Get("self")
 	uid, _ := self.(string)
+	if exist, ok := utils.AllConnections.Load(utils.Uid(uid)); ok {
+		CloseWebSocket(exist.(*utils.Connection), uid)
+	}
 	utils.AllConnections.Store(utils.Uid(uid), &connection)
 	go connection.ReceiveEvent()
 	go connection.SendEvent()
-	go func() {
+	go func(uid string) {
 		defer func() {
 			if err := recover(); err != nil {
 				fmt.Println(err)
@@ -64,27 +68,44 @@ func CreateWebSocketConn(c *gin.Context) {
 			var msg utils.WsMessage
 			err = connection.Conn.ReadJSON(&msg)
 			if err != nil {
-				_ = connection.Conn.Close()
+				utils.AllChatRooms.Range(func(key, value any) bool {
+					delete(value.(*utils.ChatRoom).Clients, utils.Uid(uid))
+					return true
+				})
+				CloseWebSocket(&connection, uid)
+				panic(err)
 			}
 			switch msg.Type {
 			case "message":
-				connection.FromWS <- msg
 				persistenceData <- msg
 			case "confirm":
 				confirmData <- msg
 			case "quitActiveRooms":
-				for _, qRoom := range msg.QuitRooms {
-					if room, ok := utils.AllChatRooms.Load(utils.Cid(qRoom)); ok {
-						delete(room.(*utils.ChatRoom).Clients, utils.Uid(uid))
-					}
-				}
+				QuitActiveRooms(uid, msg)
 			case "quit":
-				connection.CloseReceive <- true
-				connection.CloseSend <- true
-				utils.AllConnections.Delete(utils.Uid(uid))
-				_ = connection.Conn.Close()
+				CloseWebSocket(&connection, uid)
 				return
 			}
 		}
-	}()
+	}(uid)
+}
+
+func QuitActiveRooms(uid string, msg utils.WsMessage) {
+	for _, qRoom := range msg.QuitRooms {
+		if room, ok := utils.AllChatRooms.Load(utils.Cid(qRoom)); ok {
+			delete(room.(*utils.ChatRoom).Clients, utils.Uid(uid))
+		}
+	}
+}
+
+func CloseWebSocket(conn *utils.Connection, uid string) {
+	conn.ToWS <- utils.WsMessage{
+		Type:    "ServerQuit",
+		Message: "成功断开WebSocket",
+	}
+	time.Sleep(time.Second)
+	conn.CloseReceive <- true
+	conn.CloseSend <- true
+	_ = conn.Conn.Close()
+	utils.AllConnections.Delete(utils.Uid(uid))
 }

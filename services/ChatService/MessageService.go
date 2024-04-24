@@ -36,10 +36,19 @@ func GetMessageByCid(c *gin.Context) {
 		})
 		return
 	}
+	divider, err := models.GetChatRoomMessageDivider(uid.(string), cid)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"message": "查询历史信息失败",
+			"code":    utils.FailedLoadHistoryMessages,
+		})
+		return
+	}
 	c.JSON(http.StatusOK, gin.H{
 		"message":  "获取当前聊天室历史信息成功",
 		"code":     utils.Success,
 		"messages": messages,
+		"divider":  divider,
 	})
 	return
 }

@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/websocket"
@@ -16,7 +15,19 @@ import (
 type Uid string
 type Cid string
 
+var mySqlDB *gorm.DB
+
+var redisDB *redis.Client
+
+var AllConnections sync.Map
+
+var AllChatRooms sync.Map
+
+var persistenceData chan WsMessage
+var confirmData chan WsMessage
+
 type WsMessage struct {
+	ID        uint
 	Type      string
 	Target    Cid
 	Message   string
@@ -39,14 +50,6 @@ type Connection struct {
 	CloseSend    chan bool
 }
 
-var AllConnections sync.Map
-
-var AllChatRooms sync.Map
-
-var mySqlDB *gorm.DB
-
-var redisDB *redis.Client
-
 func InitConfig() {
 	viper.SetConfigName("app")
 	viper.SetConfigFile("config/config.yml")
@@ -55,12 +58,13 @@ func InitConfig() {
 		fmt.Println("配置文件读取失败!")
 	}
 
-	mySqlDB = getMySQLConnection()
-	redisDB = getRedisConnection()
-
 	AllConnections = sync.Map{}
 	AllChatRooms = sync.Map{}
+	persistenceData = make(chan WsMessage)
+	confirmData = make(chan WsMessage)
 
+	mySqlDB = getMySQLConnection()
+	redisDB = getRedisConnection()
 }
 
 func (conn *Connection) ReceiveEvent() {
@@ -134,13 +138,14 @@ func getRedisConnection() *redis.Client {
 		Password: "Tsinghua",
 		DB:       0,
 	})
-	var ctx = context.Background()
-	conn.ConfigSet(ctx, "maxmemory", "100mb")
-	conn.ConfigSet(ctx, "maxmemory-policy", "allkeys-lfu")
-
 	return conn
 }
 
 func GetRedis() *redis.Client {
 	return redisDB
 }
+
+func PersistenceData() chan WsMessage {
+	return persistenceData
+}
+func ConfirmData() chan WsMessage { return confirmData }
