@@ -136,7 +136,7 @@ func getRedisConnection() *redis.Client {
 	var conn = redis.NewClient(&redis.Options{
 		Addr:     "localhost:6379",
 		Password: "Tsinghua",
-		DB:       0,
+		DB:       15,
 	})
 	return conn
 }

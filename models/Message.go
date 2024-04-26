@@ -4,15 +4,19 @@ import (
 	"EriChat/utils"
 	"gorm.io/gorm"
 	"slices"
+	"time"
 )
 
 type Message struct {
-	gorm.Model
-	Type     string
-	Target   utils.Cid
-	Message  string
-	UserName string
-	Uid      utils.Uid
+	ID        uint `gorm:"primarykey;autoIncrement:false" `
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt gorm.DeletedAt `gorm:"index"`
+	Type      string
+	Target    utils.Cid
+	Message   string
+	UserName  string
+	Uid       utils.Uid
 }
 
 func GetMessageByCid(target string, end uint) ([]*Message, error) {

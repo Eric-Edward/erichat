@@ -5,22 +5,23 @@ import (
 	"EriChat/utils"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"slices"
+	"gorm.io/gorm"
+	"strconv"
+	"strings"
 	"time"
 )
 
 var timer *time.Timer
 
-type RedisMessage struct {
-	Cursor   uint
-	Messages []models.Message
-}
+var redisMessages map[string]uint
 
 func InitGlobalGoroutines() {
+	timer = time.NewTimer(time.Minute * 2)
+	redisMessages = make(map[string]uint)
 	loadInitMessagesIntoRedis()
 	messageEventLoop()
-	timer = time.NewTimer(time.Minute)
 }
 
 func messageEventLoop() {
@@ -35,36 +36,21 @@ func messageEventLoop() {
 		for {
 			select {
 			case msg := <-persistenceData:
-				var redisMessage RedisMessage
+				id := redisMessages[string(msg.Target)]
+				redisMessages[string(msg.Target)] = id + 1
 				redis := utils.GetRedis()
-				result, err := redis.Get(context.Background(), string(msg.Target)).Result()
-				if err != nil {
-					panic(err)
-				}
-				err = json.Unmarshal([]byte(result), &redisMessage)
-				if err != nil {
-					panic(err)
-				}
-				redisMessage.Cursor++
 				var message = models.Message{
+					ID:       id + 1,
 					Target:   msg.Target,
 					Type:     msg.Type,
-					Message:  msg.Message,
 					UserName: msg.UserName,
 					Uid:      msg.Uid,
+					Message:  msg.Message,
 				}
-				message.ID = redisMessage.Cursor
-				redisMessage.Messages = append(redisMessage.Messages, message)
-				marshal, err := json.Marshal(redisMessage)
-				if err != nil {
-					panic(err)
-				}
-				err = redis.Set(context.Background(), string(msg.Target), marshal, 0).Err()
-				if err != nil {
-					panic(err)
-				}
+				marshal, _ := json.Marshal(message)
+				redis.Set(context.Background(), string(msg.Target)+"_"+strconv.Itoa(int(id+1)), marshal, 0)
 
-				msg.ID = redisMessage.Cursor
+				msg.ID = id + 1
 				connection, _ := utils.AllConnections.Load(msg.Uid)
 				connection.(*utils.Connection).FromWS <- msg
 			case msg := <-confirmData:
@@ -98,36 +84,66 @@ func loadInitMessagesIntoRedis() {
 	for _, cid := range cids {
 		var messages []models.Message
 		db.Table("messages_" + cid).Model(&models.Message{}).Order("id desc").Limit(100).Find(&messages)
-		slices.Reverse(messages)
-		var redisMessage RedisMessage
 		if len(messages) == 0 {
-			redisMessage = RedisMessage{
-				Cursor:   0,
-				Messages: messages,
-			}
+			redisMessages[cid] = 0
 		} else {
-			redisMessage = RedisMessage{
-				Cursor:   messages[len(messages)-1].ID,
-				Messages: messages,
-			}
+			redisMessages[cid] = messages[0].ID
 		}
-		rmsg, _ := json.Marshal(&redisMessage)
-		err := redis.Set(context.Background(), cid, rmsg, 0).Err()
-		if err != nil {
-			fmt.Println("这里是添加信息到redis")
-			panic(err)
+
+		for _, message := range messages {
+			marshal, _ := json.Marshal(message)
+			err := redis.Set(context.Background(), cid+"_"+strconv.Itoa(int(message.ID)), marshal, 0).Err()
+			if err != nil {
+				panic(err)
+			}
 		}
 	}
 }
 
 func persistDataInMysql() {
+	ctx := context.Background()
 	redis := utils.GetRedis()
-	cids, err := redis.Keys(context.Background(), "*").Result()
-	if err != nil {
-		fmt.Println("从redis中获取cid失败")
-		panic(err)
+	db := utils.GetMySQLDB()
+
+	var cids []string
+	result := db.Model(&models.ChatRoom{}).Select("cid").Find(&cids)
+	if result.Error != nil {
+		panic(result.Error)
 	}
 	for _, cid := range cids {
-		MockTest("Eric", cid)
+		var latest uint
+		result = db.Table("messages_" + cid).Model(&models.Message{}).Select("id").Order("id desc").First(&latest)
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			latest = 0
+		}
+		keys, _ := redis.Keys(ctx, cid+"_*").Result()
+		var neededInsertMessages []models.Message
+		for _, key := range keys {
+			split := strings.Split(key, "_")
+			if id, _ := strconv.Atoi(split[1]); uint(id) > latest {
+				var msg models.Message
+				message, err := redis.Get(ctx, key).Result()
+				if err != nil {
+					panic(err)
+				}
+				err = json.Unmarshal([]byte(message), &msg)
+				if err != nil {
+					panic(err)
+				}
+				neededInsertMessages = append(neededInsertMessages, msg)
+			} else {
+				redis.Del(ctx, key)
+			}
+		}
+
+		if len(neededInsertMessages) != 0 {
+			tx := db.Begin()
+			result = tx.Table("messages_" + cid).Create(&neededInsertMessages)
+			if result.Error != nil {
+				tx.Rollback()
+				panic(tx.Error)
+			}
+			tx.Commit()
+		}
 	}
 }
