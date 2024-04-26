@@ -148,4 +148,5 @@ func GetRedis() *redis.Client {
 func PersistenceData() chan WsMessage {
 	return persistenceData
 }
+
 func ConfirmData() chan WsMessage { return confirmData }

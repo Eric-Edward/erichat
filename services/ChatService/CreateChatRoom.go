@@ -12,7 +12,7 @@ func CreateChatRoom(c *gin.Context) {
 	chatRoom := make(map[string]interface{})
 	err := c.BindJSON(&chatRoom)
 	if err != nil {
-		c.JSON(http.StatusOK, gin.H{
+		c.JSON(http.StatusBadRequest, gin.H{
 			"message": "获取聊天室成员失败",
 			"code":    utils.FailedBindInfo,
 		})
