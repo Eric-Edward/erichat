@@ -5,21 +5,25 @@ import (
 	"EriChat/utils"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"gorm.io/gorm"
+	"golang.org/x/exp/maps"
 	"strconv"
 	"strings"
 	"time"
 )
 
+type RedisMessagesInfo struct {
+	LastUpdate uint
+	Latest     uint
+}
+
 var timer *time.Timer
 
-var redisMessages map[string]uint
+var RedisMessages map[string]*RedisMessagesInfo
 
 func InitGlobalGoroutines() {
-	timer = time.NewTimer(time.Minute * 2)
-	redisMessages = make(map[string]uint)
+	timer = time.NewTimer(time.Minute * 5)
+	RedisMessages = make(map[string]*RedisMessagesInfo)
 	loadInitMessagesIntoRedis()
 	messageEventLoop()
 }
@@ -36,11 +40,11 @@ func messageEventLoop() {
 		for {
 			select {
 			case msg := <-persistenceData:
-				id := redisMessages[string(msg.Target)]
-				redisMessages[string(msg.Target)] = id + 1
+				redisMessageInfo := RedisMessages[string(msg.Target)]
+				redisMessageInfo.Latest++
 				redis := utils.GetRedis()
 				var message = models.Message{
-					ID:       id + 1,
+					ID:       redisMessageInfo.Latest,
 					Target:   msg.Target,
 					Type:     msg.Type,
 					UserName: msg.UserName,
@@ -48,9 +52,9 @@ func messageEventLoop() {
 					Message:  msg.Message,
 				}
 				marshal, _ := json.Marshal(message)
-				redis.Set(context.Background(), string(msg.Target)+"_"+strconv.Itoa(int(id+1)), marshal, 0)
+				redis.Set(context.Background(), string(msg.Target)+"_"+strconv.Itoa(int(redisMessageInfo.Latest)), marshal, 0)
 
-				msg.ID = id + 1
+				msg.ID = redisMessageInfo.Latest
 				connection, _ := utils.AllConnections.Load(msg.Uid)
 				connection.(*utils.Connection).FromWS <- msg
 			case msg := <-confirmData:
@@ -76,28 +80,39 @@ func loadInitMessagesIntoRedis() {
 		}
 	}()
 
+	ctx := context.Background()
 	redis := utils.GetRedis()
 	db := utils.GetMySQLDB()
+	err := redis.FlushDB(ctx).Err()
+	if err != nil {
+		panic(err)
+	}
 
 	var cids []string
 	db.Model(&models.ChatRoom{}).Select("cid").Find(&cids)
 	for _, cid := range cids {
 		var messages []models.Message
 		db.Table("messages_" + cid).Model(&models.Message{}).Order("id desc").Limit(100).Find(&messages)
+
+		var redisMessageInfo RedisMessagesInfo
 		if len(messages) == 0 {
-			redisMessages[cid] = 0
+			redisMessageInfo.LastUpdate = 0
+			redisMessageInfo.Latest = 0
 		} else {
-			redisMessages[cid] = messages[0].ID
+			redisMessageInfo.LastUpdate = messages[0].ID
+			redisMessageInfo.Latest = messages[0].ID
 		}
+		RedisMessages[cid] = &redisMessageInfo
 
 		for _, message := range messages {
 			marshal, _ := json.Marshal(message)
-			err := redis.Set(context.Background(), cid+"_"+strconv.Itoa(int(message.ID)), marshal, 0).Err()
+			err = redis.Set(ctx, cid+"_"+strconv.Itoa(int(message.ID)), marshal, 0).Err()
 			if err != nil {
 				panic(err)
 			}
 		}
 	}
+
 }
 
 func persistDataInMysql() {
@@ -105,22 +120,19 @@ func persistDataInMysql() {
 	redis := utils.GetRedis()
 	db := utils.GetMySQLDB()
 
-	var cids []string
-	result := db.Model(&models.ChatRoom{}).Select("cid").Find(&cids)
-	if result.Error != nil {
-		panic(result.Error)
-	}
+	var cids = maps.Keys(RedisMessages)
 	for _, cid := range cids {
-		var latest uint
-		result = db.Table("messages_" + cid).Model(&models.Message{}).Select("id").Order("id desc").First(&latest)
-		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			latest = 0
-		}
+		latest := RedisMessages[cid].LastUpdate
 		keys, _ := redis.Keys(ctx, cid+"_*").Result()
 		var neededInsertMessages []models.Message
+		var maxKey uint
 		for _, key := range keys {
 			split := strings.Split(key, "_")
 			if id, _ := strconv.Atoi(split[1]); uint(id) > latest {
+				if uint(id) > maxKey {
+					maxKey = uint(id)
+				}
+
 				var msg models.Message
 				message, err := redis.Get(ctx, key).Result()
 				if err != nil {
@@ -138,12 +150,13 @@ func persistDataInMysql() {
 
 		if len(neededInsertMessages) != 0 {
 			tx := db.Begin()
-			result = tx.Table("messages_" + cid).Create(&neededInsertMessages)
+			result := tx.Table("messages_" + cid).Create(&neededInsertMessages)
 			if result.Error != nil {
 				tx.Rollback()
 				panic(tx.Error)
 			}
 			tx.Commit()
+			RedisMessages[cid].LastUpdate = maxKey
 		}
 	}
 }

@@ -19,11 +19,11 @@ type Message struct {
 	Uid       utils.Uid
 }
 
-func GetMessageByCid(target string, end uint) ([]*Message, error) {
+func GetMessageByCid(target string, end uint, limit int) ([]*Message, error) {
 	var messages []*Message
 	tableName := "messages_" + target
 	db := utils.GetMySQLDB()
-	tx := db.Table(tableName).Model(&Message{}).Where("id < ?", end).Order("id desc").Limit(100).Find(&messages)
+	tx := db.Table(tableName).Model(&Message{}).Where("id < ?", end).Order("id desc").Limit(limit).Find(&messages)
 	if tx.Error != nil {
 		return nil, tx.Error
 	}
