@@ -144,7 +144,12 @@ func persistDataInMysql() {
 				}
 				neededInsertMessages = append(neededInsertMessages, msg)
 			} else {
-				redis.Del(ctx, key)
+				//redis.Del(ctx, key)
+				//这里使用redis.unlink来进行异步释放，减轻redis主线程的压力
+				err := redis.Unlink(ctx, key).Err()
+				if err != nil {
+					panic(err)
+				}
 			}
 		}
 
